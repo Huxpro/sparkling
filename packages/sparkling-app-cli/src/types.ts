@@ -12,6 +12,9 @@ export interface PlatformConfig {
     bundleIdentifier?: string;
     simulator?: string;
   };
+  web?: {
+    port?: number;
+  };
 }
 
 export type LynxConfig = unknown;
@@ -55,6 +58,7 @@ export interface AppConfig {
   paths?: {
     androidAssets?: string;
     iosAssets?: string;
+    webAssets?: string;
   };
   appIcon?: string;
   router?: RouterConfig;
@@ -68,6 +72,7 @@ export interface MethodModuleConfig {
   root: string;
   /** When true, the module is a devtool module: linked with debugImplementation on Android and excluded from release on iOS. */
   devtool?: boolean;
+  platforms?: string[];
   android?: {
     packageName?: string;
     className?: string;
@@ -80,5 +85,9 @@ export interface MethodModuleConfig {
     moduleName?: string;
     className?: string;
     podspecPath?: string;
+  };
+  web?: {
+    entryPoint?: string;
+    subpath?: string;
   };
 }
