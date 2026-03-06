@@ -25,10 +25,13 @@ npx sparkling build
 | Option | Description |
 | --- | --- |
 | `--config <path>` | Path to `app.config.ts` (default: `app.config.ts`) |
+| `--platform <platform>` | Target platform: `android`, `ios`, `web`, or `all` (default: `all`) |
 | `--copy` | Copy built assets to Android and iOS native shells |
 | `--skip-copy` | Skip copying assets (default) |
 
 By default, asset copying is skipped for faster iteration during development. Use `--copy` when you need the bundles inside the native projects (e.g. for a release build).
+
+When `--platform web` is specified, only web bundles (`*.web.bundle`) are produced. This is faster than building all environments.
 
 ### `sparkling dev`
 
@@ -41,8 +44,13 @@ npx sparkling dev
 | Option | Description |
 | --- | --- |
 | `--config <path>` | Path to `app.config.ts` (default: `app.config.ts`) |
+<<<<<<< HEAD
 | `--port <number>` | Dev server port (default: `app.config.ts -> dev.server.port`, fallback `5969`) |
 | `--host <host>` | Dev server host (default: `app.config.ts -> dev.server.host`, then Rspeedy default) |
+=======
+| `--platform <platform>` | Target platform: `android`, `ios`, `web`, or `all` (default: `all`) |
+| `--port <number>` | Dev server port (default: `5969`) |
+>>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
 
 The default port **5969** spells **LYNX** on a phone keypad (L=5, Y=9, N=6, X=9).
 
@@ -81,12 +89,18 @@ npx sparkling autolink
 
 | Option | Description |
 | --- | --- |
-| `--platform <platform>` | Platform to autolink: `android`, `ios`, or `all` (default: `all`) |
+| `--platform <platform>` | Platform to autolink: `android`, `ios`, `web`, or `all` (default: `all`) |
 
 **What it does:**
 
+<<<<<<< HEAD
 - **Android** — Links Sparkling method Gradle projects and generates `SparklingAutolink.kt`. Debug-tool packages are linked as `debugImplementation`.
 - **iOS** — Links Sparkling method pods and generates `SparklingAutolink.swift`. Debug-tool packages are linked in the debug target.
+=======
+- **Android** — Updates `settings.gradle(.kts)` and `app/build.gradle(.kts)` with module includes/dependencies, and generates `SparklingAutolink.kt`.
+- **iOS** — Updates the `Podfile` with pod entries and generates `SparklingAutolink.swift`.
+- **Web** — Reads `web` entries from each `module.config.json` and generates a `web-autolink.ts` file that imports all `*/web` method handlers.
+>>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
 
 ### `sparkling run:android`
 
@@ -139,6 +153,24 @@ This command will:
 6. Build, install, and launch the app on the simulator
 
 You can also set the `SPARKLING_IOS_SIMULATOR` environment variable to specify a default simulator.
+
+### `sparkling run:web`
+
+Build web bundles and launch a browser preview.
+
+```bash
+npx sparkling run:web
+```
+
+This command will:
+
+1. Build web bundles (`*.web.bundle`)
+2. Start the `sparkling-web-shell` dev server
+3. Open the app in your default browser at `http://localhost:3000`
+
+Use `?page=<name>` query parameters to navigate to different entry points (e.g. `http://localhost:3000?page=second`).
+
+For more details, see the [Web Platform Guide](/guide/web-platform).
 
 ### `sparkling doctor`
 
@@ -196,6 +228,9 @@ npx sparkling run:android
 # 5. Run on iOS
 npx sparkling run:ios
 
-# 6. Build bundles for release
+# 6. Preview in browser
+npx sparkling run:web
+
+# 7. Build bundles for release
 npx sparkling build --copy
 ```

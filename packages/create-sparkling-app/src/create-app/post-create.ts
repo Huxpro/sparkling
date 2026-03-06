@@ -112,7 +112,13 @@ export function detectPackageManager(): string {
   }
 }
 
+<<<<<<< HEAD
 export function showCompletionNotes(targetDir: string, packageManager?: string, didInstall = false): void {
+=======
+export function showCompletionNotes(targetDir: string, packageManager?: string, didInstall = false, enableWeb = true): void {
+  console.log(ui.success(`✔ Project created at ${targetDir}`));
+
+>>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
   const formatScriptCommand = (script: string) => {
     const pm = packageManager ?? 'npm';
     return pm === 'npm' ? `${pm} run ${script}` : `${pm} ${script}`;
@@ -128,11 +134,23 @@ export function showCompletionNotes(targetDir: string, packageManager?: string, 
 
   nextSteps.push(formatScriptCommand('run:ios'));
   nextSteps.push(formatScriptCommand('run:android'));
+  if (enableWeb) {
+    nextSteps.push(formatScriptCommand('run:web'));
+  }
 
   const tips = [
     'iOS: ensure Xcode Command Line Tools are installed.',
     'Android: ensure ANDROID_HOME and SDK platforms are set.',
   ];
+<<<<<<< HEAD
+=======
+  if (enableWeb) {
+    tips.push('Web: run `run:web` to preview your app in the browser.');
+  }
+  tips.forEach(tip => {
+    console.log(ui.tip(tip));
+  });
+>>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
 
   p.note(
     [...nextSteps, '', ...tips.map(t => ui.tip(t))].join('\n'),
