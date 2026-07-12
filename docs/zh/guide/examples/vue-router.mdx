@@ -47,12 +47,20 @@ Sparkling 的其他网页预览只渲染 UI —— 其原生调用在浏览器�
 当 `router.push` 解析到**另一个** bundle 拥有的路由（依据路由清单）时，shim 会将其转发到
 `router.open`，从而压入一个**新的原生容器**。上一个页面仍存活于其下方，与原生导航栈完全一致。
 
-由于上方的网页预览一次只渲染一个 bundle、且没有原生容器栈，跨页按钮（例如从首页点 **Users**
-或 **Settings**）无法在浏览器中完成。要体验完整流程：
+`<Go>` 网页预览一次只渲染一个 bundle，且不提供 Sparkling 的原生方法桥（`spkPipe` 模块），
+因此 `router.open` 无处可去。在上方预览中点击跨页按钮不会导航，而是显示一行提示
+（"native navigation unavailable here — open on device"）。要体验完整流程：
 
 - **扫描二维码**，在（已集成 Sparkling 的）Lynx Explorer 中打开，`router.open` 会原生运行；或
-- 运行本地 **web-shell harness**，它会在浏览器中忠实模拟原生容器栈 —— 见
+- 运行本地 **web-shell harness**，它提供方法桥并忠实模拟原生容器栈 —— 见
   [示例 README](https://github.com/tiktok/sparkling/tree/main/examples/vue-router-mpa#run-the-full-flow-on-the-local-web-shell-harness)。
+
+:::note 为何堆内可用、跨页不可用
+堆内导航是运行在卡片自身 JS heap 内的纯 Vue Router —— 没有原生调用 —— 因此在预览中可用。
+跨页导航调用 `router.open`，需要一个原生 host。`sparkling-navigation` 暴露了可插拔的
+`RouterWebHost` 供嵌入方提供 host，但 go-web 的预览目前没有暴露在其 `<lynx-view>` 上注册
+该 host（或 `spkPipe` 桥）的钩子。而 web-shell 拥有整个页面，会自行安装该 host 与桥。
+:::
 
 ## 映射关系
 

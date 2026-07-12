@@ -1,8 +1,27 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter, type RouteLocationRaw } from 'vue-router'
 import NavButton from '../../../shared/NavButton.vue'
 
 const router = useRouter()
+
+// Cross-container navigation calls Sparkling's native `router.open`. In a real
+// Sparkling container (device, or the web-shell harness) this opens a new page,
+// so you never see the result here. In an embedded preview with no native host
+// (the go-web `<Go>` web preview), `router.open` has nowhere to go, and we
+// surface that instead of failing silently.
+const navStatus = ref('')
+
+async function crossNav(to: RouteLocationRaw, mode: 'push' | 'replace' = 'push') {
+  navStatus.value = ''
+  try {
+    await (mode === 'replace' ? router.replace(to) : router.push(to))
+  } catch (err) {
+    navStatus.value = `native navigation unavailable here — open on device: ${
+      err instanceof Error ? err.message : String(err)
+    }`
+  }
+}
 </script>
 
 <template>
@@ -17,18 +36,25 @@ const router = useRouter()
     <NavButton label="push('/features') — local route" variant="plain" @tap="router.push('/features')" />
 
     <text :style="{ fontSize: 12, color: '#999', marginTop: 12, marginBottom: 4 }">cross-container (MPA)</text>
-    <NavButton label="push('/users')" @tap="router.push('/users')" />
+    <NavButton label="push('/users')" @tap="crossNav('/users')" />
     <NavButton
       label="push({ name: 'user-detail', id: 2 }) — named, other bundle"
-      @tap="router.push({ name: 'user-detail', params: { id: '2' }, query: { ref: 'home' } })"
+      @tap="crossNav({ name: 'user-detail', params: { id: '2' }, query: { ref: 'home' } })"
     />
     <NavButton
       label="push('/users/1') + history state"
-      @tap="router.push({ path: '/users/1', state: { greeting: 'hello from main' } })"
+      @tap="crossNav({ path: '/users/1', state: { greeting: 'hello from main' } })"
     />
     <NavButton
       label="replace('/settings') — swaps this container"
-      @tap="router.replace('/settings')"
+      @tap="crossNav('/settings', 'replace')"
     />
+
+    <text
+      v-if="navStatus"
+      :style="{ fontSize: 12, color: '#e5533d', marginTop: 12, lineHeight: 18 }"
+    >
+      {{ navStatus }}
+    </text>
   </view>
 </template>
