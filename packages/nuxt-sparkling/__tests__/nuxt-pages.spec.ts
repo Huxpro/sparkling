@@ -83,13 +83,17 @@ describe('catch-all routes', () => {
     expect(m?.params).toEqual({ slug: ['a', 'b', 'c'] });
   });
 
-  it('supports a catch-all in the middle of a path', () => {
-    const { byPath } = build([
+  it('supports a catch-all in the middle of a path (regex body contains a slash)', () => {
+    const { byPath, manifest } = build([
       { name: 'id', path: '/:id(.*)*', file: `${pagesDir}/[...id]/index.vue`, children: [] },
       { name: 'id-suffix', path: '/:id([^/]*)*/suffix', file: `${pagesDir}/[...id]/suffix.vue`, children: [] },
     ]);
     expect(byPath.has('/:id(.*)*')).toBe(true);
     expect(byPath.has('/:id([^/]*)*/suffix')).toBe(true);
+    // Runtime matching respects the trailing literal segment.
+    const m = matchSparklingRoute(manifest, '/a/b/suffix');
+    expect(m?.route.name).toBe('id-suffix');
+    expect(m?.params).toEqual({ id: ['a', 'b'] });
   });
 });
 

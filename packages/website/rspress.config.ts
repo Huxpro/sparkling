@@ -57,6 +57,10 @@ const sidebarEn = {
     { text: 'Web Platform Guide', link: '/guide/web-platform' },
     { text: 'Web Methods', link: '/guide/web-method-implementations' },
     { text: 'Limitations', link: '/guide/web-limitations' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: 'Nuxt (MPA)' },
+    { text: 'Compatibility', link: '/guide/nuxt-sparkling-compat' },
+    { text: 'Web API Dependencies', link: '/guide/nuxt-web-api-dependencies' },
   ],
   '/apis/': [
     { text: 'Overview', link: '/apis/' },

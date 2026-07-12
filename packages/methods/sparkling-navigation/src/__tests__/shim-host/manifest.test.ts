@@ -68,6 +68,24 @@ describe('matchSparklingRoute', () => {
     expect(matchSparklingRoute(manifest, '/nope/here')).toBeNull();
   });
 
+  it('matches a mid-path catch-all whose regex body contains a slash', () => {
+    // Nuxt emits [...id]/suffix as `/:id([^/]*)*/suffix`. The slash inside
+    // the custom regex must not be treated as a segment boundary.
+    const mid: SparklingRouteManifest = {
+      version: 1,
+      base: '/',
+      routes: [
+        { name: 'id-suffix', path: '/:id([^/]*)*/suffix', entry: 'a' },
+        { name: 'id-all', path: '/:id(.*)*', entry: 'b' },
+      ],
+    };
+    const m = matchSparklingRoute(mid, '/x/y/suffix');
+    expect(m?.route.name).toBe('id-suffix');
+    expect(m?.params).toEqual({ id: ['x', 'y'] });
+    // The plain catch-all still wins when there is no trailing /suffix.
+    expect(matchSparklingRoute(mid, '/x/y')?.route.name).toBe('id-all');
+  });
+
   it('respects a non-root base', () => {
     const based: SparklingRouteManifest = {
       version: 1,

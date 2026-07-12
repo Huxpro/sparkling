@@ -87,8 +87,33 @@ interface CompiledRoute {
 
 const SEGMENT_RE = /^:([\w]+)(\(([^)]*)\))?([?+*]?)$/;
 
+/**
+ * Split a route path into segments on `/`, but only at parenthesis depth
+ * zero — a custom param regex body can itself contain a slash (Nuxt emits
+ * a mid-path catch-all as `:id([^slash]...)` followed by a literal
+ * segment), which a naive `split('/')` would mangle.
+ */
+function splitSegments(path: string): string[] {
+  const trimmed = path.replace(/^\/+|\/+$/g, '');
+  const segments: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of trimmed) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    if (ch === '/' && depth === 0) {
+      if (current) segments.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current) segments.push(current);
+  return segments;
+}
+
 function compilePath(route: SparklingManifestRoute): CompiledRoute {
-  const segments = route.path.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+  const segments = splitSegments(route.path);
   const keys: CompiledRoute['keys'] = [];
   let pattern = '';
   let score = 0;
