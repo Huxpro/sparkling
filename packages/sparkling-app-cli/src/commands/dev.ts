@@ -16,11 +16,14 @@ import { ui } from '../utils/ui';
 import { isVerboseEnabled, verboseLog } from '../utils/verbose';
 import { warnIfWildcardDevServerHost } from '../utils/dev-server-host';
 
+export type DevPlatform = 'web' | 'native' | 'all';
+
 export interface DevOptions {
   cwd: string;
   configFile?: string;
   port?: number;
   host?: string;
+  platform?: DevPlatform;
 }
 
 function getEntryKeys(config: { lynxConfig: unknown }): string[] {
@@ -43,6 +46,7 @@ function clearConfigRequireCache(cwd: string, configPath: string): void {
 
 export async function devProject(options: DevOptions): Promise<void> {
   const configFile = options.configFile ?? 'app.config.ts';
+  const platform = options.platform ?? 'all';
   const { config, configPath } = await loadAppConfig(options.cwd, configFile);
   const { devPort, lynxPort } = getConfiguredDevServerPorts(config);
   if (devPort !== undefined && lynxPort !== undefined && devPort !== lynxPort) {
@@ -70,13 +74,22 @@ export async function devProject(options: DevOptions): Promise<void> {
     if (host) {
       verboseLog(`Dev server host: ${host}`);
     }
+    verboseLog(`Dev platform: ${platform}`);
   }
+
+  const environmentArgs: string[] = [];
+  if (platform === 'web') {
+    environmentArgs.push('--environment', 'web');
+  } else if (platform === 'native') {
+    environmentArgs.push('--environment', 'lynx');
+  }
+  // platform === 'all' → no --environment flag → serves all environments
 
   let currentEntryKeys = getEntryKeys(config);
 
   console.log(
     ui.headline(
-      `Starting Rspeedy dev server on port ${port} with config from ${path.relative(options.cwd, configPath)}`,
+      `Starting Rspeedy dev server (${platform}) on port ${port} with config from ${path.relative(options.cwd, configPath)}`,
     ),
   );
 
@@ -124,7 +137,7 @@ export async function devProject(options: DevOptions): Promise<void> {
       if (isVerboseEnabled()) {
         verboseLog(`Temp Lynx config: ${tempConfigPath}`);
       }
-      child = spawn('rspeedy', ['dev', '--config', tempConfigPath], {
+      child = spawn('rspeedy', ['dev', '--config', tempConfigPath, ...environmentArgs], {
         cwd: options.cwd,
         env: process.env,
         stdio: 'inherit',
