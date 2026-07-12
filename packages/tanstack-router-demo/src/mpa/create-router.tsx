@@ -58,6 +58,9 @@ export function createMpaRouter() {
     routeTree,
     history: history as never,
     isServer: false,
+    // router-core reads a bare `window.origin` when isServer is false; a
+    // native Lynx runtime has no `window`, so pin the origin explicitly.
+    origin: 'http://sparkling.local',
     defaultErrorComponent: LynxErrorComponent as never,
     defaultNotFoundComponent: (() => (
       <view style={{ padding: '48px 20px' }}>
