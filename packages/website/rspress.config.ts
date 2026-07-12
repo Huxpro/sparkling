@@ -61,6 +61,7 @@ const sidebarEn = {
     { sectionHeaderText: 'Nuxt (MPA)' },
     { text: 'Compatibility', link: '/guide/nuxt-sparkling-compat' },
     { text: 'Web API Dependencies', link: '/guide/nuxt-web-api-dependencies' },
+    { text: 'Further Portability', link: '/guide/nuxt-sparkling-further-portability' },
   ],
   '/apis/': [
     { text: 'Overview', link: '/apis/' },
