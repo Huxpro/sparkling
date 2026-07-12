@@ -1,5 +1,6 @@
 import { defineConfig } from '@rspress/core';
 import { pluginLlms } from '@rspress/plugin-llms';
+import { pluginSass } from '@rsbuild/plugin-sass';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -34,11 +35,13 @@ const githubSocialIcon = {
 
 const navEn = [
   { text: 'Guide', link: '/guide/get-started/create-new-app' },
+  { text: 'Examples', link: '/guide/examples' },
   { text: 'APIs', link: '/apis/' },
 ];
 
 const navZh = [
   { text: '指南', link: '/guide/get-started/create-new-app' },
+  { text: '示例', link: '/guide/examples' },
   { text: 'APIs', link: '/apis/' },
 ];
 
@@ -57,6 +60,14 @@ const sidebarEn = {
     },
     { text: 'Development Workflow', link: '/guide/sparkling-go/dev-server-url' },
     { text: 'Debug Panel', link: '/guide/sparkling-go/debug-panel' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: 'Examples' },
+    { text: 'Overview', link: '/guide/examples' },
+    { text: 'Navigation', link: '/guide/examples/navigation' },
+    { text: 'Scheme', link: '/guide/examples/scheme' },
+    { text: 'Global Props', link: '/guide/examples/global-props' },
+    { text: 'Storage', link: '/guide/examples/storage' },
+    { text: 'Media', link: '/guide/examples/media' },
     { dividerType: 'solid' },
     { sectionHeaderText: 'Core' },
     { text: 'CLI', link: '/guide/cli' },
@@ -127,6 +138,14 @@ const sidebarZhBase = {
     },
     { text: '开发工作流', link: '/guide/sparkling-go/dev-server-url' },
     { text: 'Debug Panel', link: '/guide/sparkling-go/debug-panel' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: '示例' },
+    { text: '概览', link: '/guide/examples' },
+    { text: '导航', link: '/guide/examples/navigation' },
+    { text: 'Scheme', link: '/guide/examples/scheme' },
+    { text: '全局属性', link: '/guide/examples/global-props' },
+    { text: '存储', link: '/guide/examples/storage' },
+    { text: '媒体', link: '/guide/examples/media' },
     { dividerType: 'solid' },
     { sectionHeaderText: '核心' },
     { text: 'CLI', link: '/guide/cli' },
@@ -207,6 +226,9 @@ export default defineConfig({
     link: {
       checkDeadLinks: false,
     },
+    // Register <Go> globally so example docs can embed live Lynx previews
+    // without importing the component in every MDX file.
+    globalComponents: [path.resolve(__dirname, 'src/components/go/Go.tsx')],
   },
   title: 'Sparkling',
   description:
@@ -270,7 +292,11 @@ export default defineConfig({
     ]),
   ],
   builderConfig: {
+    // go-web ships Sass modules and is consumed as TypeScript source, so enable
+    // Sass and let the bundler transpile files under node_modules/**/go-web/**.
+    plugins: [pluginSass()],
     source: {
+      include: [/[\\/]go-web[\\/]/],
       define: {
         __SPARKLING_VERSION__: JSON.stringify(SPARKLING_VERSION),
       },

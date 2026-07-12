@@ -1,0 +1,42 @@
+# Examples
+
+Sparkling ships a gallery of runnable Lynx examples. Each one is embedded with
+the [`<Go>`](https://github.com/lynx-community/go-web) component, which lets you:
+
+- **Browse the source** — read the full example, file by file.
+- **Preview on the web** — run the Lynx page live in your browser.
+- **Scan to run on device** — open it in Lynx Explorer (with Sparkling
+  integrated) via QR code, where the native APIs actually run.
+
+:::tip Web preview vs. on device
+The **web preview** renders the UI in your browser, but Sparkling's native
+method bridges (navigation, storage, media, global props) only run inside a
+Sparkling container. To exercise those, use the **QR code** tab and open the
+example in Lynx Explorer on your phone.
+:::
+
+## Hello World
+
+A minimal Sparkling Lynx page with a tap counter.
+
+<Go example="hello-world" defaultFile="src/App.tsx" defaultEntryName="main" />
+
+## Sparkling Go demos
+
+The [Sparkling Go playground](https://github.com/tiktok/sparkling/tree/main/packages/playground)
+is a full app demonstrating every built-in capability. Its demos are grouped by
+feature:
+
+- [**Navigation**](/guide/examples/navigation) — scheme-driven push/pop and passing data between pages.
+- [**Scheme**](/guide/examples/scheme) — build and preview Sparkling scheme URLs.
+- [**Global Props**](/guide/examples/global-props) — read device, screen, and container info.
+- [**Storage**](/guide/examples/storage) — persist and read key–value data.
+- [**Media**](/guide/examples/media) — choose, upload, and download media.
+
+## How it works
+
+Every folder under `examples/*` and the `packages/playground` app is turned into
+a live embed by `packages/website/scripts/prepare-examples.mjs`: it builds each
+example (a `*.web.bundle` for the browser and a `*.lynx.bundle` for the device),
+writes a go-web `example-metadata.json`, and copies the result into
+`public/examples/<name>/`. The `<Go>` component reads that metadata.

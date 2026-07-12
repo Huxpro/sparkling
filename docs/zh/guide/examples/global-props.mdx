@@ -1,0 +1,37 @@
+# 全局属性
+
+Sparkling 会向每个 Lynx 页面注入一个 `GlobalProps` 对象，包含设备、屏幕与容器
+信息。以下示例读取并展示这些信息。
+
+## 设备
+
+设备型号、操作系统、应用版本等字段。
+
+<Go
+  example="sparkling-go"
+  defaultEntryName="gp-device"
+  defaultFile="src/pages/gp-device/App.tsx"
+  entry="src/pages/gp-device"
+/>
+
+## 屏幕
+
+屏幕尺寸、像素密度与安全区域。
+
+<Go
+  example="sparkling-go"
+  defaultEntryName="gp-screen"
+  defaultFile="src/pages/gp-screen/App.tsx"
+  entry="src/pages/gp-screen"
+/>
+
+## 容器
+
+通过 scheme 传入的容器级属性。
+
+<Go
+  example="sparkling-go"
+  defaultEntryName="gp-container"
+  defaultFile="src/pages/gp-container/App.tsx"
+  entry="src/pages/gp-container"
+/>

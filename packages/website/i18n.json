@@ -1,0 +1,34 @@
+{
+  "go.preview": {
+    "en": "Preview",
+    "zh": "预览"
+  },
+  "go.qrcode": {
+    "en": "QR Code",
+    "zh": "二维码"
+  },
+  "go.files": {
+    "en": "Files",
+    "zh": "文件"
+  },
+  "go.scan.message-1": {
+    "en": "Scan the QR code with ",
+    "zh": "使用 "
+  },
+  "go.scan.message-2": {
+    "en": " to preview on device.",
+    "zh": " 扫描二维码即可在设备上预览。"
+  },
+  "go.qrcode.copy-link": {
+    "en": "Copy Link",
+    "zh": "复制链接"
+  },
+  "go.qrcode.copied": {
+    "en": "Copied",
+    "zh": "已复制"
+  },
+  "go.qrcode.entry": {
+    "en": "Entry",
+    "zh": "入口"
+  }
+}
