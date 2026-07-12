@@ -133,6 +133,55 @@ const manifest = {
 The longest matching path prefix wins; if the destination page equals the
 current page, navigation stays in-page.
 
+## File-based routing: reusing TanStack's compile-time toolchain
+
+TanStack Router's file-based routing has a **compile-time half** that is fully
+reusable in a Rspeedy/Rspack/ReactLynx project — verified end-to-end in the
+demo. It splits into three official pieces plus one MPA-specific piece we add.
+
+**What we reuse as-is (official):**
+
+- **`@tanstack/router-generator`** turns the `src/routes/*` file convention
+  (`createFileRoute('/path')`) into `src/routeTree.gen.ts` — the fully-wired,
+  fully-typed route tree. It is pure Node (no bundler, no DOM) and runs
+  standalone (`new Generator({ config, root }).run()`).
+- **`@tanstack/router-plugin/rspack`** composes into the Rspeedy build via
+  `tools.rspack` **alongside `pluginReactLynx`**. `TanStackRouterGeneratorRspack`
+  (generator-only) regenerates the tree on build and watch — verified by
+  deleting `routeTree.gen.ts` and rebuilding.
+- **Code-splitting** (`TanStackRouterRspack` with `autoCodeSplitting: true`)
+  **also composes**: the build emits a separate async chunk per route
+  component and the lazy chunks **load and render at runtime in the Lynx web
+  worker** (verified on the harness). The demo keeps it *off* by default: on an
+  MPA each page is already its own bundle, so per-page bundling gives most of
+  the benefit, and native async-chunk loading (vs the web worker) is not yet
+  verified.
+
+**What TanStack does not provide — the MPA dimension (`scripts/gen-mpa.mjs`):**
+
+The official generator assumes *one router = one bundle*. An MPA needs two more
+artifacts derived from the **same** route files:
+
+1. `src/routes.manifest.ts` — the route→page (bundle) mapping.
+2. one bundle entry per native page (`src/pages.gen/<id>/index.tsx`), wired into
+   `source.entry`.
+
+Page boundaries are declared inline in a route file — our extension to the
+convention:
+
+```ts
+// src/routes/detail.$id.tsx
+export const page = { id: 'detail', containerParams: { title: 'Detail' } };
+export const Route = createFileRoute('/detail/$id')({ /* ... */ });
+```
+
+Routes without a `page` export belong to the root page (the one whose `page`
+has `root: true`). `gen-mpa.mjs` reads these markers and emits the manifest and
+entries; `createManifestPageResolver` consumes the manifest at runtime. The
+whole pipeline (`pnpm codegen`) is wired into build/dev/pretest, so
+`routeTree.gen.ts` + `routes.manifest.ts` + entries regenerate from the route
+files alone.
+
 ## What a navigation actually does
 
 From the demo (`packages/tanstack-router-demo`), verified on the web harness:
@@ -196,6 +245,7 @@ router, no DOM) or `packages/sparkling-history/tests/*` unless noted.
 | Cross-page loader prefetch | ❌ | The destination loader lives in a different JS context that has not booted. Prefetching moves to the native/shell layer. |
 | Pending/`defer`/`Await` (in-page) | ⚠️ | Promise + Suspense based; works within a page. SSR streaming variant (`react-dom/server`) is N/A. |
 | Cross-page pending UI | ❌ | No `pendingMatches` transition across pages — the native container shows its own loading screen while the new VM boots. |
+| Auto code-splitting (in-page lazy chunks) | ⚠️ | `router-plugin`'s `autoCodeSplitting` builds and the lazy chunks load/render on the **web** harness. Off by default: on an MPA each page is already its own bundle, and native async-chunk loading is unverified. |
 
 ### DOM-bound / SSR — not supported (by platform)
 
@@ -352,7 +402,12 @@ world their adapter does not target.
 
 - `packages/sparkling-history` — the reusable shim (contract + history +
   sparkling host + manifest resolver). 28 tests.
-- `packages/tanstack-router-demo` — the spike + the multi-page MPA demo + the
-  headless feature-matrix tests (12).
+- `packages/tanstack-router-demo` — the spike, the file-based multi-page MPA
+  demo, and the headless tests (16: feature matrix + generated-tree).
+  - `src/routes/*` — file-based routes (official convention + `page` markers).
+  - `scripts/codegen.mjs` — runs the official generator + `gen-mpa.mjs`.
+  - `scripts/gen-mpa.mjs` — MPA manifest + per-page entries codegen.
+  - `src/routeTree.gen.ts` (official generator), `src/routes.manifest.ts` +
+    `src/page-entries.gen.ts` + `src/pages.gen/*` (MPA codegen).
 - Web-support fixes: `packages/methods/sparkling-navigation/src/web`,
   `packages/sparkling-web-shell/src/index.ts`.
