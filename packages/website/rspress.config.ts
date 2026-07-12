@@ -7,6 +7,20 @@ const require = createRequire(import.meta.url);
 const rootPkg = require('../../package.json');
 const SPARKLING_VERSION: string = rootPkg.version;
 
+// ---------------------------------------------------------------------------
+// Base path
+// ---------------------------------------------------------------------------
+// GitHub Pages serves the site under a project sub-path (`/sparkling/`), while
+// Vercel serves it from the domain root (`/`). The base is therefore driven by
+// the `DOCS_BASE` env var so the same config powers both deployments.
+// Vercel sets `DOCS_BASE=/` (see the repo-root `vercel.json`); everything else
+// falls back to the GitHub Pages default.
+const rawBase = process.env.DOCS_BASE ?? '/sparkling/';
+// Normalise to a leading + trailing slash so path joins stay predictable.
+const BASE = `/${rawBase.replace(/^\/+|\/+$/g, '')}/`.replace(/\/{2,}/g, '/');
+// Join the base with a public-dir asset path (e.g. `sparkling_logo_144.png`).
+const asset = (p: string): string => `${BASE}${p.replace(/^\/+/, '')}`;
+
 const githubSocialIcon = {
   svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
   <title>GitHub</title>
@@ -183,7 +197,7 @@ const sidebarZh = {
 
 export default defineConfig({
   root: 'docs',
-  base: '/sparkling/',
+  base: BASE,
   lang: 'en',
   locales: [
     { lang: 'en', label: 'English' },
@@ -197,10 +211,10 @@ export default defineConfig({
   title: 'Sparkling',
   description:
     "Sparkling is TikTok\u2019s hybrid container spanning Android, iOS, and Lynx.",
-  icon: '/sparkling/sparkling_logo_144.png',
+  icon: asset('sparkling_logo_144.png'),
   logo: {
-    light: '/sparkling/sparkling_logo_144_light.png',
-    dark: '/sparkling/sparkling_logo_144.png',
+    light: asset('sparkling_logo_144_light.png'),
+    dark: asset('sparkling_logo_144.png'),
   },
   logoText: 'Sparkling',
   themeConfig: {
