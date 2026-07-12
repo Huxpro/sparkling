@@ -9,6 +9,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bundleDir = process.env.LYNX_BUNDLE_DIR
   || path.join(__dirname, '../playground/dist/web');
 
+// run:web passes PORT / BROWSER env variables (rsbuild does not read
+// them on its own).
+const port = Number.parseInt(process.env.PORT ?? '', 10);
+const openBrowser = process.env.BROWSER !== 'none';
+
 export default defineConfig({
   source: {
     entry: {
@@ -20,7 +25,8 @@ export default defineConfig({
     template: './src/index.html',
   },
   server: {
-    port: 4200,
+    port: Number.isFinite(port) ? port : 4200,
+    open: openBrowser,
     publicDir: [
       {
         name: path.resolve(bundleDir),
