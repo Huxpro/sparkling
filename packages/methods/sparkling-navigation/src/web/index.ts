@@ -4,6 +4,12 @@
 
 import { registerWebMethod } from 'sparkling-method/web-registry';
 
+/** Options forwarded from `router.open` to the {@link RouterWebHost}. */
+export interface RouterOpenOptions {
+    /** Replace the current entry/container instead of stacking a new one. */
+    replace?: boolean;
+}
+
 /**
  * How web navigation is actually performed. The default host drives the
  * browser History API and assumes the Lynx app owns the whole page (e.g.
@@ -12,14 +18,15 @@ import { registerWebMethod } from 'sparkling-method/web-registry';
  * so navigation stays scoped to the card instead of the top-level document.
  */
 export interface RouterWebHost {
-    open(pageName: string, scheme: string): void;
+    open(pageName: string, scheme: string, options?: RouterOpenOptions): void;
     close(): void;
 }
 
 const defaultHost: RouterWebHost = {
-    open(pageName, scheme) {
+    open(pageName, scheme, options) {
         const state = { page: pageName, scheme };
-        window.history.pushState(state, '', `?page=${encodeURIComponent(pageName)}`);
+        const method = options?.replace ? 'replaceState' : 'pushState';
+        window.history[method](state, '', `?page=${encodeURIComponent(pageName)}`);
         // Notify a full-page host (e.g. the web shell) to swap its <lynx-view>.
         window.dispatchEvent(
             new CustomEvent('sparkling:navigate', { detail: { page: pageName, state } }),
@@ -71,7 +78,8 @@ registerWebMethod('router.open', (params, callback) => {
             callback({ code: 0, msg: 'No bundle or url param in scheme' });
             return;
         }
-        host.open(pageName, scheme);
+        const replace = (params.data as Record<string, unknown>)?.replace === true;
+        host.open(pageName, scheme, { replace });
         callback({ code: 1, msg: 'ok' });
     } catch (e) {
         callback({ code: 0, msg: `Failed to parse scheme: ${e}` });

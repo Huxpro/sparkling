@@ -7,9 +7,9 @@ import '@lynx-js/web-elements/index.css';
 // Import web method handlers (self-registering).
 // These register handlers in the main-thread registry where browser APIs
 // (localStorage, window.history, document.createElement) are available.
-import 'sparkling-navigation/web';
 import 'sparkling-storage/web';
 import 'sparkling-media/web';
+import { setRouterWebHost } from 'sparkling-navigation/web';
 
 import { getWebMethodHandler } from 'sparkling-method/web-registry';
 
@@ -298,30 +298,28 @@ function reconcileWithHistoryState(state: ShellHistoryState | null): void {
 
 // ── Wire up ────────────────────────────────────────────────────────────
 
-window.addEventListener('sparkling:navigate', ((event: CustomEvent) => {
-  event.preventDefault(); // signal the method handler that the shell took over
-  const { scheme, replace } = event.detail as { scheme: string; replace: boolean };
-  if (replace) {
-    replaceTopView(scheme);
-  } else {
-    pushView(scheme);
-  }
-  commitHistory(replace);
-}) as EventListener);
-
-window.addEventListener('sparkling:close', ((event: CustomEvent) => {
-  event.preventDefault();
-  const { containerID } = event.detail as { containerID?: string };
-  const top = topEntry();
-  if (containerID && top && top.containerID !== containerID) {
-    console.warn(
-      '[sparkling-web-shell] closing a non-top container is not supported on web; ignoring.',
-    );
-    return;
-  }
-  // going back through browser history keeps history and view stack in sync
-  window.history.back();
-}) as EventListener);
+// Install a full-page RouterWebHost: instead of the default History-API host,
+// the shell owns the whole page, so router.open/close drive the stacked
+// <lynx-view> container model directly (see sparkling-navigation's pluggable
+// RouterWebHost). The scheme carries everything a new container's heap needs
+// (bundle + queryItems), so we push/replace from it and mirror the stack into
+// browser history for back/forward/reload.
+setRouterWebHost({
+  open(_pageName, scheme, options) {
+    const replace = options?.replace === true;
+    if (replace) {
+      replaceTopView(scheme);
+    } else {
+      pushView(scheme);
+    }
+    commitHistory(replace);
+  },
+  close() {
+    // Going back through browser history keeps history and the view stack in
+    // sync (popstate below pops the revealed container).
+    window.history.back();
+  },
+});
 
 window.addEventListener('popstate', (event) => {
   reconcileWithHistoryState(event.state as ShellHistoryState | null);
