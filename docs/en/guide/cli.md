@@ -44,13 +44,9 @@ npx sparkling dev
 | Option | Description |
 | --- | --- |
 | `--config <path>` | Path to `app.config.ts` (default: `app.config.ts`) |
-<<<<<<< HEAD
+| `--platform <platform>` | Target platform: `web`, `native`, or `all` (default: `all`) |
 | `--port <number>` | Dev server port (default: `app.config.ts -> dev.server.port`, fallback `5969`) |
 | `--host <host>` | Dev server host (default: `app.config.ts -> dev.server.host`, then Rspeedy default) |
-=======
-| `--platform <platform>` | Target platform: `android`, `ios`, `web`, or `all` (default: `all`) |
-| `--port <number>` | Dev server port (default: `5969`) |
->>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
 
 The default port **5969** spells **LYNX** on a phone keypad (L=5, Y=9, N=6, X=9).
 
@@ -93,14 +89,9 @@ npx sparkling autolink
 
 **What it does:**
 
-<<<<<<< HEAD
 - **Android** — Links Sparkling method Gradle projects and generates `SparklingAutolink.kt`. Debug-tool packages are linked as `debugImplementation`.
 - **iOS** — Links Sparkling method pods and generates `SparklingAutolink.swift`. Debug-tool packages are linked in the debug target.
-=======
-- **Android** — Updates `settings.gradle(.kts)` and `app/build.gradle(.kts)` with module includes/dependencies, and generates `SparklingAutolink.kt`.
-- **iOS** — Updates the `Podfile` with pod entries and generates `SparklingAutolink.swift`.
 - **Web** — Reads `web` entries from each `module.config.json` and generates a `web-autolink.ts` file that imports all `*/web` method handlers.
->>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
 
 ### `sparkling run:android`
 

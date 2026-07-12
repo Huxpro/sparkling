@@ -374,11 +374,7 @@ export async function createSparklingApp(
     await initializeGitRepo(distFolder);
   }
 
-<<<<<<< HEAD
-  showCompletionNotes(targetDir, packageManager, didInstall);
+  showCompletionNotes(targetDir, packageManager, didInstall, enableWeb);
 
   p.outro(ui.success('Happy hacking!'));
-=======
-  showCompletionNotes(targetDir, packageManager, didInstall, enableWeb);
->>>>>>> 3fbe481 (feat: add web method bridge, CLI web support, docs, and create-app web option)
 }
