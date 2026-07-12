@@ -1,0 +1,66 @@
+{
+  "name": "sparkling-history",
+  "version": "0.1.0",
+  "description": "W3C-History-style navigation shim that lets SPA routers (e.g. vue-router) drive MPA-style native navigation on Sparkling / Lynx",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/sparkling-history"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./sparkling": {
+      "types": "./dist/hosts/sparkling.d.ts",
+      "default": "./dist/hosts/sparkling.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "default": "./dist/vue/index.js"
+    },
+    "./codegen": {
+      "types": "./dist/codegen/index.d.ts",
+      "default": "./dist/codegen/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "sparkling": ["dist/hosts/sparkling.d.ts"],
+      "vue": ["dist/vue/index.d.ts"],
+      "codegen": ["dist/codegen/index.d.ts"]
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "sparkling-navigation": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue-router": ">=4.4.0"
+  },
+  "peerDependenciesMeta": {
+    "vue-router": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@lynx-js/types": "3.7.0",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "license": "Apache-2.0"
+}
