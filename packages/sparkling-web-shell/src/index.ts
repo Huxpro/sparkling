@@ -14,18 +14,40 @@ import 'sparkling-media/web';
 import { getWebMethodHandler } from 'sparkling-method/web-registry';
 
 /**
- * Determine which bundle to load from the ?page= query parameter.
- * Default: "main" -> /main.lynx.bundle
+ * Sparkling web shell: a browser stand-in for the native container stack.
+ *
+ * Mirrors the native SDK's model so the web can be used as a faithful
+ * development harness for multi-page (MPA-style) navigation:
+ *
+ * - every `router.open` STACKS a new `<lynx-view>` (its own Worker heap);
+ *   the previous view stays alive underneath, hidden — like a backgrounded
+ *   native container
+ * - `router.close` / browser back pops the top view, revealing the previous
+ *   one with its state intact
+ * - each view gets `globalProps` (containerID + queryItems parsed from its
+ *   scheme) and `viewAppeared`/`viewDisappeared` GlobalEvents, matching the
+ *   native SDK's GlobalPropsUtils/ViewEventUtils behavior
+ * - browser history entries carry the whole scheme stack in `state`, so
+ *   back/forward/reload reconcile the view stack (forward re-creates a
+ *   fresh heap — same as a native process restore)
  */
-function getBundleUrl(): string {
-  const params = new URLSearchParams(window.location.search);
-  const page = params.get('page') || 'main';
-  return `/${page}.lynx.bundle`;
+
+interface StackEntry {
+  scheme: string;
+  containerID: string;
+  view: LynxViewElement;
 }
 
+interface ShellHistoryState {
+  sparklingStack: string[];
+}
+
+const viewStack: StackEntry[] = [];
+let nextContainerId = 1;
+
 /**
- * Handle NativeModules RPC calls from the Worker thread.
- * When the Lynx bundle calls NativeModules.spkPipe.call(method, data, callback),
+ * Handle NativeModules RPC calls from a Worker thread.
+ * When a Lynx bundle calls NativeModules.spkPipe.call(method, data, callback),
  * web-core bridges the call to this main-thread handler via onNativeModulesCall.
  */
 function handleNativeModulesCall(
@@ -53,9 +75,6 @@ function handleNativeModulesCall(
 /**
  * Create a blob URL for a minimal ESM module that acts as the spkPipe
  * NativeModule stub in the Worker. web-core dynamically imports this URL.
- * The module exports a default object with a `call` method that the Worker's
- * NativeModules will use. The actual call is bridged to the main thread
- * via web-core's RPC mechanism and handled by onNativeModulesCall.
  */
 const spkPipeModuleCode = `
 // Factory called by web-core's createNativeModules.
@@ -71,27 +90,83 @@ export default function(nativeModules, callBridge) {
 const spkPipeBlob = new Blob([spkPipeModuleCode], { type: 'application/javascript' });
 const spkPipeModuleUrl = URL.createObjectURL(spkPipeBlob);
 
+// ── Scheme helpers ─────────────────────────────────────────────────────
+
+function parseSchemeQuery(scheme: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const qIndex = scheme.indexOf('?');
+  if (qIndex < 0) return result;
+  for (const [key, value] of new URLSearchParams(scheme.slice(qIndex + 1))) {
+    result[key] = value;
+  }
+  return result;
+}
+
+/** Resolve the bundle URL a scheme points at (dev `url=` wins over `bundle=`). */
+function bundleUrlOf(scheme: string): string | null {
+  const query = parseSchemeQuery(scheme);
+  if (query.url) return query.url;
+  if (query.bundle) {
+    const name = query.bundle.split('/').filter(Boolean).pop() ?? query.bundle;
+    return `/${name}`;
+  }
+  return null;
+}
+
 /**
- * Render the Lynx view into the page.
+ * GlobalProps mirroring the native SDK (GlobalPropsUtils). `queryItems`
+ * carries every scheme query param — this is how a page's isolated heap
+ * learns its own URL (sparkling-history relies on it).
  */
-function render(): void {
-  const bundleUrl = getBundleUrl();
-  const container = document.getElementById('root');
+function globalPropsFor(scheme: string, containerID: string): Record<string, unknown> {
+  const queryItems = parseSchemeQuery(scheme);
+  queryItems.containerInitTime = String(Date.now());
+  return {
+    containerID,
+    containerInitTime: queryItems.containerInitTime,
+    queryItems,
+    os: 'web',
+    screenWidth: window.innerWidth,
+    screenHeight: window.innerHeight,
+    pixelRatio: window.devicePixelRatio,
+    language: navigator.language,
+    theme: window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  };
+}
+
+// ── View stack management ──────────────────────────────────────────────
+
+function rootElement(): HTMLElement | null {
+  return document.getElementById('root');
+}
+
+function sendViewEvent(entry: StackEntry | undefined, event: 'viewAppeared' | 'viewDisappeared'): void {
+  entry?.view.sendGlobalEvent?.(event, []);
+}
+
+function createView(scheme: string): StackEntry | null {
+  const container = rootElement();
   if (!container) {
     console.error('[sparkling-web-shell] #root element not found');
-    return;
+    return null;
   }
 
-  container.innerHTML = '';
+  const bundleUrl = bundleUrlOf(scheme);
+  if (!bundleUrl) {
+    console.error(`[sparkling-web-shell] scheme has no bundle/url param: ${scheme}`);
+    return null;
+  }
 
+  const containerID = `web-container-${nextContainerId++}`;
   const lynxView = document.createElement('lynx-view');
   lynxView.setAttribute('url', bundleUrl);
-  lynxView.style.width = '100vw';
-  lynxView.style.height = '100vh';
+  lynxView.style.cssText =
+    'position:absolute;inset:0;width:100vw;height:100vh;';
 
   // Register main-thread handler for spkPipe NativeModules calls.
   // Must be set BEFORE adding to DOM (connectedCallback initializes the Worker).
   lynxView.onNativeModulesCall = handleNativeModulesCall;
+  lynxView.globalProps = globalPropsFor(scheme, containerID);
 
   // Register spkPipe in the native modules map so the Worker knows it exists.
   const modulesMap = lynxView.nativeModulesMap as Record<string, unknown>;
@@ -99,16 +174,148 @@ function render(): void {
     modulesMap['spkPipe'] = spkPipeModuleUrl;
   }
 
+  const entry: StackEntry = { scheme, containerID, view: lynxView };
   container.appendChild(lynxView);
+  return entry;
 }
 
-// Initial render
-render();
+function topEntry(): StackEntry | undefined {
+  return viewStack[viewStack.length - 1];
+}
 
-// Listen for sparkling:navigate events dispatched by router.open web handler
+function pushView(scheme: string): void {
+  const previousTop = topEntry();
+  const entry = createView(scheme);
+  if (!entry) return;
+  if (previousTop) {
+    previousTop.view.style.display = 'none';
+    sendViewEvent(previousTop, 'viewDisappeared');
+  }
+  viewStack.push(entry);
+}
+
+function popViews(count: number): void {
+  for (let i = 0; i < count && viewStack.length > 0; i++) {
+    const entry = viewStack.pop()!;
+    sendViewEvent(entry, 'viewDisappeared');
+    entry.view.remove();
+  }
+  const revealed = topEntry();
+  if (revealed) {
+    revealed.view.style.display = '';
+    sendViewEvent(revealed, 'viewAppeared');
+  }
+}
+
+function replaceTopView(scheme: string): void {
+  const previousTop = viewStack.pop();
+  if (previousTop) {
+    sendViewEvent(previousTop, 'viewDisappeared');
+    previousTop.view.remove();
+  }
+  const entry = createView(scheme);
+  if (entry) viewStack.push(entry);
+}
+
+/** Rebuild the whole stack from schemes (initial load, reload, forward). */
+function rebuildStack(schemes: string[]): void {
+  while (viewStack.length) {
+    viewStack.pop()!.view.remove();
+  }
+  schemes.forEach((scheme, index) => {
+    const entry = createView(scheme);
+    if (!entry) return;
+    if (index !== schemes.length - 1) entry.view.style.display = 'none';
+    viewStack.push(entry);
+  });
+}
+
+// ── Browser history sync ───────────────────────────────────────────────
+
+function currentSchemes(): string[] {
+  return viewStack.map((entry) => entry.scheme);
+}
+
+function historyUrlFor(scheme: string): string {
+  const query = parseSchemeQuery(scheme);
+  const bundle = bundleUrlOf(scheme) ?? '';
+  const page = bundle.split('/').filter(Boolean).pop()?.replace(/\.(lynx|web)\.bundle$/, '') ?? 'main';
+  const route = query.__hs_route;
+  return `?page=${encodeURIComponent(page)}${route ? `&__hs_route=${encodeURIComponent(route)}` : ''}`;
+}
+
+function commitHistory(replace: boolean): void {
+  const state: ShellHistoryState = { sparklingStack: currentSchemes() };
+  const url = historyUrlFor(topEntry()?.scheme ?? '');
+  window.history[replace ? 'replaceState' : 'pushState'](state, '', url);
+}
+
+/** Derive the initial scheme from the shell URL (`?page=...&<extras>`). */
+function initialSchemeFromLocation(): string {
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('page') || 'main';
+  params.delete('page');
+  const extras = params.toString();
+  return `hybrid://lynxview_page?bundle=${encodeURIComponent(`${page}.lynx.bundle`)}${extras ? `&${extras}` : ''}`;
+}
+
+function reconcileWithHistoryState(state: ShellHistoryState | null): void {
+  const target = state?.sparklingStack ?? [initialSchemeFromLocation()];
+  const current = currentSchemes();
+
+  const isPrefix = (prefix: string[], full: string[]) =>
+    prefix.length <= full.length && prefix.every((s, i) => s === full[i]);
+
+  if (target.length < current.length && isPrefix(target, current)) {
+    // back: pop views, previous containers stay alive → state preserved
+    popViews(current.length - target.length);
+  } else if (target.length > current.length && isPrefix(current, target)) {
+    // forward: re-create containers from schemes (fresh heaps)
+    const previousTop = topEntry();
+    if (previousTop) {
+      previousTop.view.style.display = 'none';
+      sendViewEvent(previousTop, 'viewDisappeared');
+    }
+    for (const scheme of target.slice(current.length)) {
+      const entry = createView(scheme);
+      if (entry) viewStack.push(entry);
+    }
+  } else if (target.join('\n') !== current.join('\n')) {
+    rebuildStack(target);
+  }
+}
+
+// ── Wire up ────────────────────────────────────────────────────────────
+
 window.addEventListener('sparkling:navigate', ((event: CustomEvent) => {
-  render();
+  event.preventDefault(); // signal the method handler that the shell took over
+  const { scheme, replace } = event.detail as { scheme: string; replace: boolean };
+  if (replace) {
+    replaceTopView(scheme);
+  } else {
+    pushView(scheme);
+  }
+  commitHistory(replace);
 }) as EventListener);
 
-// Re-render when browser navigation changes the URL
-window.addEventListener('popstate', render);
+window.addEventListener('sparkling:close', ((event: CustomEvent) => {
+  event.preventDefault();
+  const { containerID } = event.detail as { containerID?: string };
+  const top = topEntry();
+  if (containerID && top && top.containerID !== containerID) {
+    console.warn(
+      '[sparkling-web-shell] closing a non-top container is not supported on web; ignoring.',
+    );
+    return;
+  }
+  // going back through browser history keeps history and view stack in sync
+  window.history.back();
+}) as EventListener);
+
+window.addEventListener('popstate', (event) => {
+  reconcileWithHistoryState(event.state as ShellHistoryState | null);
+});
+
+// Initial render
+reconcileWithHistoryState(window.history.state as ShellHistoryState | null);
+commitHistory(true);
