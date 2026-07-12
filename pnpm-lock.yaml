@@ -332,6 +332,18 @@ importers:
       react-copy-to-clipboard:
         specifier: ^5.1.0
         version: 5.1.1(react@19.2.5)
+      sparkling-media:
+        specifier: workspace:*
+        version: link:../methods/sparkling-media
+      sparkling-method:
+        specifier: workspace:*
+        version: link:../sparkling-method
+      sparkling-navigation:
+        specifier: workspace:*
+        version: link:../methods/sparkling-navigation
+      sparkling-storage:
+        specifier: workspace:*
+        version: link:../methods/sparkling-storage
       swr:
         specifier: ^2.2.5
         version: 2.4.2(react@19.2.5)

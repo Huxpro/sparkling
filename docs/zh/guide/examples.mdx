@@ -9,9 +9,11 @@ Sparkling 提供了一组可运行的 Lynx 示例。每个示例都通过
   真正运行原生能力。
 
 :::tip 网页预览 vs 真机
-**网页预览**会在浏览器中渲染 UI，但 Sparkling 的原生 method 桥（导航、存储、
-媒体、全局属性）只能在 Sparkling 容器内运行。要体验这些能力，请使用**二维码**
-标签页，在手机的 Lynx Explorer 中打开示例。
+**网页预览**会在浏览器中运行 UI。得益于 Sparkling 的
+[实验性 Web 支持](https://github.com/tiktok/sparkling/pull/22)，部分 method 现在
+也有了浏览器实现 —— **导航**（History API）、**存储**（`localStorage`）与
+**媒体**（file input / `fetch`），因此这些示例可以直接在此交互。要体验真正的原生
+行为，请使用**二维码**标签页，在手机的 Lynx Explorer 中打开示例。
 :::
 
 ## Hello World
