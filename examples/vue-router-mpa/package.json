@@ -1,0 +1,41 @@
+{
+  "name": "@sparkling-example/vue-router-mpa",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "description": "Vue Router driving Sparkling multi-page native navigation (MPA) via sparkling-history.",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "files": [
+    "dist",
+    "src",
+    "lynx.config.ts",
+    "tsconfig.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "examples/vue-router-mpa"
+  },
+  "scripts": {
+    "build": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-history build && rspeedy build",
+    "dev": "rspeedy dev",
+    "preview": "rspeedy preview",
+    "dev:web-shell": "rspeedy build --environment web && LYNX_BUNDLE_DIR=\"$PWD/dist\" pnpm --filter sparkling-web-shell dev"
+  },
+  "dependencies": {
+    "sparkling-history": "workspace:*",
+    "sparkling-method": "workspace:*",
+    "sparkling-navigation": "workspace:*",
+    "vue-lynx": "0.4.0",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@lynx-js/qrcode-rsbuild-plugin": "^0.4.4",
+    "@lynx-js/rspeedy": "^0.13.3",
+    "@rsbuild/plugin-vue": "^1.2.6",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "^22 || ^24"
+  }
+}

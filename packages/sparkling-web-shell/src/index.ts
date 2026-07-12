@@ -102,13 +102,24 @@ function parseSchemeQuery(scheme: string): Record<string, string> {
   return result;
 }
 
-/** Resolve the bundle URL a scheme points at (dev `url=` wins over `bundle=`). */
+/**
+ * Resolve the bundle URL a scheme points at (dev `url=` wins over `bundle=`).
+ *
+ * Sparkling schemes name the NATIVE bundle (`<name>.lynx.bundle`), but this
+ * shell renders through @lynx-js/web-core, which needs the WEB-target build
+ * (`<name>.web.bundle`). So we rewrite the extension when resolving the URL to
+ * load — keeping the scheme itself native-shaped.
+ */
+function toWebBundle(bundlePath: string): string {
+  return bundlePath.replace(/\.lynx\.bundle$/, '.web.bundle');
+}
+
 function bundleUrlOf(scheme: string): string | null {
   const query = parseSchemeQuery(scheme);
-  if (query.url) return query.url;
+  if (query.url) return toWebBundle(query.url);
   if (query.bundle) {
     const name = query.bundle.split('/').filter(Boolean).pop() ?? query.bundle;
-    return `/${name}`;
+    return `/${toWebBundle(name)}`;
   }
   return null;
 }

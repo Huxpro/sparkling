@@ -99,7 +99,7 @@ plugins: [
 ]
 ```
 
-See [`packages/playground-vue`](../playground-vue) for a full working demo,
+See [`examples/vue-router-mpa`](../../examples/vue-router-mpa) for a full working demo,
 and [`COMPATIBILITY.md`](./COMPATIBILITY.md) for the Vue Router feature matrix.
 
 ## What crosses the heap boundary

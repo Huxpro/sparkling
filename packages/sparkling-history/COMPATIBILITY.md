@@ -30,7 +30,7 @@ Legend: ✅ supported & validated · 🟦 supported in-heap (Vue-native pass-thr
 Validation column points at where the claim is exercised:
 `history.spec` / `cross-container.spec` / `vue-adapter.spec` /
 `vue-features.spec` are unit suites in `src/__tests__`; **e2e** is the
-Playwright run against the web shell driving `packages/playground-vue`.
+Playwright run against the web shell driving `examples/vue-router-mpa`.
 
 ---
 
@@ -60,7 +60,7 @@ Playwright run against the web shell driving `packages/playground-vue`.
 | 15 | Guards — in-component (`onBeforeRouteLeave`/`Update`) | in-heap | 🟦 | Standard Vue Router; runs for in-heap transitions. **Cross-heap caveat:** leaving a page by opening another container does *not* run the opener's leave guards — the opener stays mounted underneath (it wasn't left). This matches browser MPA: navigating to a new document doesn't fire the old document's in-app leave guards. |
 | 16 | **Route Meta Fields** (`meta`) | in-heap | 🟦 | Untouched Vue Router feature. Meta does not cross heaps (not serialized into the scheme); put cross-page data in query/state. |
 | 17 | **Data Fetching** (guard-driven / after-nav) | in-heap | 🟦 | Works per-heap. Each opened container fetches on its own boot — the natural MPA data-loading point. |
-| 18 | **Composition API** (`useRoute`/`useRouter`/`useLink`) | in-heap | ✅ | Used throughout `packages/playground-vue`; `useRouter()` returns the `SparklingRouter` (adds `hybridHistory`). |
+| 18 | **Composition API** (`useRoute`/`useRouter`/`useLink`) | in-heap | ✅ | Used throughout `examples/vue-router-mpa`; `useRouter()` returns the `SparklingRouter` (adds `hybridHistory`). |
 | 19 | **RouterView slot** (`<router-view v-slot>`) | in-heap | 🟦 | Pure Vue feature; unaffected. |
 | 20 | **Transitions** (`<router-view>` + `<Transition>`) | in-heap | ⚠️ | In-heap route transitions work (Vue `<Transition>`). **Cross-container** transitions are the *native* push/pop animation (owned by Sparkling / the platform), not Vue transitions — you get platform animation, configurable via scheme params (e.g. `animated`). |
 | 21 | **Scroll Behavior** (`scrollBehavior`, saved position) | — | ❌ | Not supported. Vue Router's `scrollBehavior` drives `window.scrollTo` / `document` scroll and reads `window.history.state.scroll`; **Lynx has no window scroll** (scrolling lives inside `<scroll-view>`/`<list>`, per-container). Saved-position restore across containers is likewise a native concern. Platform limitation, not fixable in the shim. |
