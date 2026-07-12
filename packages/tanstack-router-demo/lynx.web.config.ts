@@ -10,13 +10,31 @@
 //     resolve from the website rather than the native `asset://` scheme,
 //   - writes to `dist-web/` so the native `dist/` is never clobbered.
 //
-// It reuses the native config's entries, React/DOM shims, the TanStack Router
-// generator plugin, and pluginReactLynx by spreading it.
+// It reuses the native config's entries, React/DOM shims, and pluginReactLynx
+// by spreading it, but deliberately DROPS the TanStack Router generator plugin
+// (`tools`) — see below.
 import { defineConfig } from '@lynx-js/rspeedy'
 import baseConfig from './lynx.config.js'
 
 export default defineConfig({
   ...baseConfig,
+  source: {
+    ...baseConfig.source,
+    // The website only surfaces `spike` and `home` (the entries that render
+    // meaningfully standalone in the web preview). Building just these keeps
+    // the website bundle set minimal.
+    entry: {
+      spike: './src/spike/index.tsx',
+      home: './src/pages.gen/home/index.tsx',
+    },
+  },
+  // Drop the base config's `tools.rspack` (the @tanstack/router-plugin
+  // generator). This build is run on the website deploy (Vercel), where we want
+  // the exact same lean pipeline the playground uses — plain rspeedy +
+  // pluginReactLynx — with no extra build-time codegen. The generated
+  // `src/routeTree.gen.ts` is committed, so the plugin's regeneration is not
+  // needed here; the native `build`/`dev` scripts still run it.
+  tools: {},
   environments: {
     lynx: {},
     web: {},
