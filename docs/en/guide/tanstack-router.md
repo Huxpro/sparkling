@@ -9,9 +9,10 @@ It covers the design, the reusable shim layer, the exact feature support
 matrix (what works, what cannot, and why), the shims ReactLynx needs, and a
 comparison with TanStack Router's own React Native effort.
 
-> Status: experimental. Built and verified on the [Web platform](./web-platform)
-> harness. The reusable history layer (`sparkling-history`) and the demo
-> (`tanstack-router-demo`) are the deliverables.
+> Status: experimental. In-page routing is verified live in the
+> [go-web web preview](./examples/tanstack-router); the reusable history layer
+> (`sparkling-history`) and the demo (`tanstack-router-demo`) are the
+> deliverables.
 
 ## The problem: MPA, not SPA
 
@@ -152,7 +153,7 @@ demo. It splits into three official pieces plus one MPA-specific piece we add.
 - **Code-splitting** (`TanStackRouterRspack` with `autoCodeSplitting: true`)
   **also composes**: the build emits a separate async chunk per route
   component and the lazy chunks **load and render at runtime in the Lynx web
-  worker** (verified on the harness). The demo keeps it *off* by default: on an
+  worker** (verified in the go-web web preview). The demo keeps it *off* by default: on an
   MPA each page is already its own bundle, so per-page bundling gives most of
   the benefit, and native async-chunk loading (vs the web worker) is not yet
   verified.
@@ -184,7 +185,8 @@ files alone.
 
 ## What a navigation actually does
 
-From the demo (`packages/tanstack-router-demo`), verified on the web harness:
+From the demo (`packages/tanstack-router-demo`) — in-page rows run live in the
+go-web web preview; cross-page rows are native `router.open`/`close`:
 
 | Action | Location change | Under the hood |
 | --- | --- | --- |
@@ -245,7 +247,7 @@ router, no DOM) or `packages/sparkling-history/tests/*` unless noted.
 | Cross-page loader prefetch | ❌ | The destination loader lives in a different JS context that has not booted. Prefetching moves to the native/shell layer. |
 | Pending/`defer`/`Await` (in-page) | ⚠️ | Promise + Suspense based; works within a page. SSR streaming variant (`react-dom/server`) is N/A. |
 | Cross-page pending UI | ❌ | No `pendingMatches` transition across pages — the native container shows its own loading screen while the new VM boots. |
-| Auto code-splitting (in-page lazy chunks) | ⚠️ | `router-plugin`'s `autoCodeSplitting` builds and the lazy chunks load/render on the **web** harness. Off by default: on an MPA each page is already its own bundle, and native async-chunk loading is unverified. |
+| Auto code-splitting (in-page lazy chunks) | ⚠️ | `router-plugin`'s `autoCodeSplitting` builds and the lazy chunks load/render in the go-web web preview. Off by default: on an MPA each page is already its own bundle, and native async-chunk loading is unverified. |
 
 ### DOM-bound / SSR — not supported (by platform)
 
@@ -301,21 +303,23 @@ Two router options are also required:
 - `origin: '<any-url>'` — router-core reads a bare `window.origin` when
   `isServer` is false, which throws `ReferenceError` in a native Lynx runtime.
 
-## Web-platform bugfixes (stacked)
+## Web preview (go-web) and what it can show
 
-The [Web platform](./web-platform) support (upstream experimental PR) is the
-development harness. Two gaps in it were prerequisites for URL-driven routing
-and are fixed as isolated commits (extractable as a stacked PR):
+The demo is embedded on the website as a live [go-web](./examples/tanstack-router)
+example. The go-web web preview renders a Lynx `*.web.bundle` in the browser but
+**does not run the Sparkling native bridge** (the same limitation as every other
+Sparkling example — see the [Examples overview](./examples)). That maps cleanly
+onto this integration:
 
-1. `sparkling-navigation/web` dropped every scheme query param except the
-   bundle name, so pages opened via `router.open` could not read their launch
-   params. Now all scheme params (outer scheme + nested `url=` params, outer
-   wins — mirroring native `parseQueryMap`) are carried into the browser URL,
-   and `options.replace` maps to `history.replaceState`.
-2. `sparkling-web-shell` never injected `globalProps` into `<lynx-view>`, so
-   `lynx.__globalProps.queryItems`/`containerID` were undefined on web. The
-   shell now injects `containerID` + `queryItems` (+ `os`/screen/theme) from
-   the current URL, matching the native container contract.
+- **In-page routing runs live** in the preview — the spike's Home↔About and the
+  MPA `home` bundle's Home↔Profile are `createMpaHistory` in-memory transitions
+  with no `pipe.call`, so they work in the browser.
+- **Cross-page navigation is a native `router.open`** — in the preview it is a
+  graceful no-op (the bridge returns "not available"); on device (QR tab) it
+  opens the destination page's bundle. This was verified end-to-end earlier on
+  an experimental web method-bridge harness (a shell that turns `router.open`
+  into a `<lynx-view>` swap); that bridge is orthogonal to go-web and is not
+  part of this branch.
 
 ## Comparison with TanStack Router's React Native adapter
 
@@ -409,5 +413,5 @@ world their adapter does not target.
   - `scripts/gen-mpa.mjs` — MPA manifest + per-page entries codegen.
   - `src/routeTree.gen.ts` (official generator), `src/routes.manifest.ts` +
     `src/page-entries.gen.ts` + `src/pages.gen/*` (MPA codegen).
-- Web-support fixes: `packages/methods/sparkling-navigation/src/web`,
-  `packages/sparkling-web-shell/src/index.ts`.
+- Website embed: `docs/en/guide/examples/tanstack-router.mdx` (the live `<Go>`
+  example), registered in `packages/website/scripts/prepare-examples.mjs`.

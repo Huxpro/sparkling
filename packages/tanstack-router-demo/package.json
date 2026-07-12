@@ -12,9 +12,8 @@
   "scripts": {
     "codegen": "node scripts/codegen.mjs",
     "build": "pnpm codegen && rspeedy build",
-    "build:web": "pnpm codegen && rspeedy build --environment web",
+    "build:web": "pnpm codegen && rspeedy build --config lynx.web.config.ts",
     "dev": "pnpm codegen && rspeedy dev",
-    "dev:web": "pnpm codegen && rspeedy build --environment web && pnpm --filter sparkling-web-shell dev",
     "pretest": "pnpm codegen",
     "test": "vitest run --passWithNoTests"
   },
