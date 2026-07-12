@@ -1,0 +1,60 @@
+{
+  "name": "nuxt-sparkling",
+  "version": "2.1.0-rc.12",
+  "description": "Nuxt module that drives Sparkling native navigation (MPA) from file-based pages, via web-navigation-shim",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/nuxt-sparkling"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./module": {
+      "types": "./dist/module.d.ts",
+      "default": "./dist/module.js"
+    },
+    "./runtime/history": {
+      "types": "./dist/runtime/history.d.ts",
+      "default": "./dist/runtime/history.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "sparkling-navigation": "workspace:*",
+    "web-navigation-shim": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18",
+    "vue-router": "^5.1.0",
+    "@vue/runtime-core": "^3.5.13",
+    "vue": "^3.5.13"
+  },
+  "peerDependencies": {
+    "vue-router": "^4.5.0 || ^5.0.0"
+  },
+  "keywords": [
+    "nuxt",
+    "lynx",
+    "sparkling",
+    "navigation",
+    "mpa"
+  ],
+  "license": "Apache-2.0"
+}

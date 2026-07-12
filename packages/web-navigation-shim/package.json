@@ -8,22 +8,22 @@
     "url": "https://github.com/tiktok/sparkling",
     "directory": "packages/web-navigation-shim"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
     "./memory": {
-      "types": "./dist/hosts/memory.d.ts",
-      "default": "./dist/hosts/memory.js"
+      "types": "./dist/src/hosts/memory.d.ts",
+      "default": "./dist/src/hosts/memory.js"
     }
   },
   "typesVersions": {
     "*": {
       "memory": [
-        "dist/hosts/memory.d.ts"
+        "dist/src/hosts/memory.d.ts"
       ]
     }
   },

@@ -371,8 +371,23 @@ export function createNavigationShim(host: NavigationHost): NavigationShim {
 
   function install(target: Record<string, unknown> = globalThis as unknown as Record<string, unknown>, options: { force?: boolean } = {}): void {
     const define = (key: string, value: unknown) => {
-      if (options.force || target[key] === undefined) {
-        target[key] = value;
+      const descriptor = Object.getOwnPropertyDescriptor(target, key);
+      const present = descriptor !== undefined && target[key] !== undefined;
+      if (!options.force && present) return;
+      // Some hosts expose read-only globals (e.g. Node's `navigator`
+      // getter). Assign when writable, else redefine, else skip — never
+      // throw, so installing over a partially-populated context is safe.
+      try {
+        if (descriptor && !descriptor.configurable && !descriptor.writable && !descriptor.set) {
+          return;
+        }
+        if (descriptor && (descriptor.writable || descriptor.set)) {
+          target[key] = value;
+        } else {
+          Object.defineProperty(target, key, { value, configurable: true, writable: true });
+        }
+      } catch {
+        // Read-only, non-configurable global: leave the host's version.
       }
     };
     define('window', windowLike);
