@@ -17,11 +17,16 @@
     "./web": {
       "types": "./dist/src/web/index.d.ts",
       "default": "./dist/src/web/index.js"
+    },
+    "./shim-host": {
+      "types": "./dist/src/shim-host/index.d.ts",
+      "default": "./dist/src/shim-host/index.js"
     }
   },
   "typesVersions": {
     "*": {
-      "web": ["dist/src/web/index.d.ts"]
+      "web": ["dist/src/web/index.d.ts"],
+      "shim-host": ["dist/src/shim-host/index.d.ts"]
     }
   },
   "files": [
