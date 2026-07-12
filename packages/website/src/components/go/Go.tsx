@@ -18,8 +18,9 @@ import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
 // `go.*` i18n strings are provided by `i18n.json`.
 const config: GoConfig = {
   // Where `prepare-examples.mjs` writes each example (served from the site's
-  // public dir). `withBase` from the adapter prepends the site `base`
-  // (`/sparkling/`), yielding e.g. `/sparkling/examples/hello-world/...`.
+  // public dir). `withBase` from the adapter prepends the site `base` (e.g.
+  // `/sparkling/` on GitHub Pages, `/` on Vercel), so this stays correct on
+  // both hosts.
   exampleBasePath: '/examples',
   // Default to the live web preview; falls back to source when a web bundle
   // isn't available for an example.

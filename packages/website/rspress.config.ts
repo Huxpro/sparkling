@@ -8,6 +8,12 @@ const require = createRequire(import.meta.url);
 const rootPkg = require('../../package.json');
 const SPARKLING_VERSION: string = rootPkg.version;
 
+// GitHub Pages serves this as a project site under `/sparkling/`, so all asset
+// URLs need that prefix there. Vercel serves the deployment at the domain root,
+// where the `/sparkling/` prefix would 404 (broken CSS/JS/logo). Vercel sets
+// `VERCEL=1` during builds, so switch the base accordingly.
+const BASE = process.env.VERCEL ? '/' : '/sparkling/';
+
 const githubSocialIcon = {
   svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
   <title>GitHub</title>
@@ -192,7 +198,7 @@ const sidebarZh = {
 
 export default defineConfig({
   root: 'docs',
-  base: '/sparkling/',
+  base: BASE,
   lang: 'en',
   locales: [
     { lang: 'en', label: 'English' },
@@ -209,10 +215,10 @@ export default defineConfig({
   title: 'Sparkling',
   description:
     "Sparkling is TikTok\u2019s hybrid container spanning Android, iOS, and Lynx.",
-  icon: '/sparkling/sparkling_logo_144.png',
+  icon: `${BASE}sparkling_logo_144.png`,
   logo: {
-    light: '/sparkling/sparkling_logo_144_light.png',
-    dark: '/sparkling/sparkling_logo_144.png',
+    light: `${BASE}sparkling_logo_144_light.png`,
+    dark: `${BASE}sparkling_logo_144.png`,
   },
   logoText: 'Sparkling',
   themeConfig: {
