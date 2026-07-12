@@ -4,6 +4,14 @@
 
 import { registerWebMethod } from 'sparkling-method/web-registry';
 
+/**
+ * Scheme params that identify the target bundle rather than carry page data.
+ * Everything else is forwarded to the opened page as queryItems, matching the
+ * native containers which expose scheme query params via
+ * `lynx.__globalProps.queryItems`.
+ */
+const RESERVED_SCHEME_PARAMS = new Set(['bundle', 'url']);
+
 registerWebMethod('router.open', (params, callback) => {
     const scheme = (params.data as Record<string, unknown>)?.scheme as string | undefined;
 
@@ -31,9 +39,19 @@ registerWebMethod('router.open', (params, callback) => {
             return;
         }
 
+        // Forward every non-reserved scheme param in the browser URL so the
+        // shell can hand them to the new page as globalProps.queryItems.
+        const nextParams = new URLSearchParams();
+        nextParams.set('page', pageName);
+        url.searchParams.forEach((value, key) => {
+            if (!RESERVED_SCHEME_PARAMS.has(key) && key !== 'page') {
+                nextParams.set(key, value);
+            }
+        });
+
         // Push browser history state
         const state = { page: pageName, scheme };
-        window.history.pushState(state, '', `?page=${encodeURIComponent(pageName)}`);
+        window.history.pushState(state, '', `?${nextParams.toString()}`);
 
         // Dispatch custom event for web shell to swap <lynx-view>
         window.dispatchEvent(new CustomEvent('sparkling:navigate', {

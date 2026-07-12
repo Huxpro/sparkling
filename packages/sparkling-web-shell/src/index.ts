@@ -23,6 +23,30 @@ function getBundleUrl(): string {
   return `/${page}.lynx.bundle`;
 }
 
+let containerSeq = 0;
+
+/**
+ * Build the globalProps for a freshly opened page, mirroring what the native
+ * Sparkling containers provide: scheme query params via `queryItems` and a
+ * unique `containerID` per container instance.
+ */
+function buildGlobalProps(): Record<string, unknown> {
+  const params = new URLSearchParams(window.location.search);
+  const queryItems: Record<string, string> = {};
+  params.forEach((value, key) => {
+    if (key !== 'page') {
+      queryItems[key] = value;
+    }
+  });
+  containerSeq += 1;
+  return {
+    platform: 'web',
+    containerID: `web-${Date.now().toString(36)}-${containerSeq}`,
+    containerInitTime: String(Date.now()),
+    queryItems,
+  };
+}
+
 /**
  * Handle NativeModules RPC calls from the Worker thread.
  * When the Lynx bundle calls NativeModules.spkPipe.call(method, data, callback),
@@ -84,10 +108,17 @@ function render(): void {
 
   container.innerHTML = '';
 
-  const lynxView = document.createElement('lynx-view');
+  const lynxView = document.createElement('lynx-view') as HTMLElement & {
+    globalProps?: unknown;
+    onNativeModulesCall?: typeof handleNativeModulesCall;
+    nativeModulesMap?: Record<string, unknown>;
+  };
   lynxView.setAttribute('url', bundleUrl);
   lynxView.style.width = '100vw';
   lynxView.style.height = '100vh';
+
+  // Provide scheme query params and container identity like native shells do.
+  lynxView.globalProps = buildGlobalProps();
 
   // Register main-thread handler for spkPipe NativeModules calls.
   // Must be set BEFORE adding to DOM (connectedCallback initializes the Worker).
