@@ -95,19 +95,11 @@ export async function askAdditionalTools(flags: { yes?: boolean }): Promise<stri
 export async function askWebPlatform(flags: { yes?: boolean; web?: boolean }): Promise<boolean> {
   if (flags.web !== undefined) return flags.web;
   if (!flags.yes) {
-    try {
-      const { enableWeb } = await inquirer.prompt<{ enableWeb: boolean }>([
-        {
-          type: 'confirm',
-          name: 'enableWeb',
-          message: ui.prompt('Enable web platform support? (preview in browser)'),
-          default: true,
-        },
-      ]);
-      return checkCancel(enableWeb);
-    } catch (error) {
-      handlePromptError(error);
-    }
+    const enableWeb = await p.confirm({
+      message: 'Enable web platform support? (preview in browser)',
+      initialValue: true,
+    });
+    return checkCancel(enableWeb);
   }
   return true;
 }
