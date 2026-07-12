@@ -1,0 +1,68 @@
+# Vue Router（MPA）
+
+本示例让 **[Vue Router](https://router.vuejs.org) 运行在 Sparkling 导航之上**，
+从而用一份路由配置驱动**多个原生 Lynx 页面**之间的导航 —— 即多页（MPA）模型。
+
+它基于 [`sparkling-history`](https://github.com/tiktok/sparkling/tree/main/packages/sparkling-history)：
+一个与框架无关的 shim，在 Sparkling 的 `router.open` / `router.close` 之上实现了
+Vue Router 的 history 契约。
+
+:::info 与 VueLynx 的视图内路由不同
+[VueLynx](https://vue.lynxjs.org) 通过 `createMemoryHistory` 在**单个 `LynxView`
+内**（同一个 JS heap）构建 SPA。本示例正相反：每个页面是一个**独立的 Lynx 容器、拥有
+各自的 JS heap**，Vue Router 驱动它们之间的*原生*导航。这些 heap 不共享内存 —— 仅靠一份
+构建期生成的路由清单相互连接。
+:::
+
+## 堆内导航（网页预览中可实时运行）
+
+`main` bundle 拥有两个路由 `/` 与 `/features`。在两者间切换是发生在**同一个 heap 内**的
+普通 Vue Router 过渡，不涉及原生桥，因此可在下方的网页预览中实时运行。点击 **Features**
+（或页内按钮），可见路由在不打开新页面的情况下发生变化。
+
+<Go
+  example="vue-router-mpa"
+  defaultEntryName="main"
+  defaultFile="src/pages/main/views/Home.vue"
+/>
+
+:::tip 这一点超越了其他示例
+Sparkling 的其他网页预览只渲染 UI —— 其原生调用在浏览器中是失效的。而这里堆内的路由过渡在
+网页上确实可用，因为这一部分是纯粹的 Vue Router。
+:::
+
+## 动态路由（`users` bundle）
+
+`users` bundle 拥有 `/users` 与动态的 `/users/:id`。点击某个用户是带路由参数的堆内导航，
+完全由该 bundle 自己的 router 解析。此预览从该 bundle 自身的默认路由（`/users`）启动。
+
+<Go
+  example="vue-router-mpa"
+  defaultEntryName="users"
+  defaultFile="src/pages/users/views/UserList.vue"
+/>
+
+## 跨页导航（MPA —— 请用二维码 / 真机标签页）
+
+当 `router.push` 解析到**另一个** bundle 拥有的路由（依据路由清单）时，shim 会将其转发到
+`router.open`，从而压入一个**新的原生容器**。上一个页面仍存活于其下方，与原生导航栈完全一致。
+
+由于上方的网页预览一次只渲染一个 bundle、且没有原生容器栈，跨页按钮（例如从首页点 **Users**
+或 **Settings**）无法在浏览器中完成。要体验完整流程：
+
+- **扫描二维码**，在（已集成 Sparkling 的）Lynx Explorer 中打开，`router.open` 会原生运行；或
+- 运行本地 **web-shell harness**，它会在浏览器中忠实模拟原生容器栈 —— 见
+  [示例 README](https://github.com/tiktok/sparkling/tree/main/examples/vue-router-mpa#run-the-full-flow-on-the-local-web-shell-harness)。
+
+## 映射关系
+
+| Vue Router | Sparkling |
+|---|---|
+| 当前 bundle 拥有的路由 | 堆内过渡（SPA） |
+| 其他 bundle 拥有的路由 | `router.open(<scheme>)` —— 新容器（MPA） |
+| `router.back()` 越过本地历史 | `router.close()` —— 弹出容器 |
+| `history.state` | 通过 scheme URL 在 heap 之间传递 |
+| history 模式（`createWebHistory` 等） | 由 `createHybridHistory` 取代 |
+
+Vue Router 完整特性集在 MPA 模型下的支持、重构与限制情况，参见
+[兼容性矩阵](https://github.com/tiktok/sparkling/blob/main/packages/sparkling-history/COMPATIBILITY.md)。
