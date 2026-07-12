@@ -18,7 +18,7 @@ npm create sparkling-app@latest my-app
 cd my-app
 ```
 
-### Run native targets
+### Run on any platform
 
 ```bash
 # Android
@@ -26,6 +26,9 @@ npm run run:android
 
 # iOS
 npm run run:ios
+
+# Web (browser preview)
+npm run run:web
 ```
 
 ### Add Sparkling methods as needed
@@ -56,7 +59,7 @@ Key folders/files created by the default template:
 - `src/`: Lynx/React entry points and assets
 - `android/`, `ios/`: native shells wired to Sparkling SDK
 - `app.config.ts`: build + routing config consumed by `sparkling-app-cli`
-- `package.json`: scripts (`dev`, `build`, `run:android`, `run:ios`)
+- `package.json`: scripts (`dev`, `build`, `run:android`, `run:ios`, `run:web`)
 
 ### Prerequisites
 

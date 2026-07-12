@@ -52,6 +52,11 @@ const sidebarEn = {
     { dividerType: 'solid' },
     { sectionHeaderText: 'Native Module' },
     { text: 'Custom Methods', link: '/guide/get-started/create-custom-method' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: 'Web Platform' },
+    { text: 'Web Platform Guide', link: '/guide/web-platform' },
+    { text: 'Web Methods', link: '/guide/web-method-implementations' },
+    { text: 'Limitations', link: '/guide/web-limitations' },
   ],
   '/apis/': [
     { text: 'Overview', link: '/apis/' },
@@ -122,6 +127,11 @@ const sidebarZhBase = {
     { dividerType: 'solid' },
     { sectionHeaderText: '原生模块' },
     { text: '自定义 Method', link: '/guide/get-started/create-custom-method' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: 'Web 平台' },
+    { text: 'Web 平台指南', link: '/guide/web-platform' },
+    { text: 'Web Methods', link: '/guide/web-method-implementations' },
+    { text: '限制', link: '/guide/web-limitations' },
   ],
   '/apis/': [
     { text: '概览', link: '/apis/' },

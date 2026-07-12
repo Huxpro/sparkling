@@ -112,7 +112,7 @@ export function detectPackageManager(): string {
   }
 }
 
-export function showCompletionNotes(targetDir: string, packageManager?: string, didInstall = false): void {
+export function showCompletionNotes(targetDir: string, packageManager?: string, didInstall = false, enableWeb = true): void {
   const formatScriptCommand = (script: string) => {
     const pm = packageManager ?? 'npm';
     return pm === 'npm' ? `${pm} run ${script}` : `${pm} ${script}`;
@@ -128,11 +128,17 @@ export function showCompletionNotes(targetDir: string, packageManager?: string, 
 
   nextSteps.push(formatScriptCommand('run:ios'));
   nextSteps.push(formatScriptCommand('run:android'));
+  if (enableWeb) {
+    nextSteps.push(formatScriptCommand('run:web'));
+  }
 
   const tips = [
     'iOS: ensure Xcode Command Line Tools are installed.',
     'Android: ensure ANDROID_HOME and SDK platforms are set.',
   ];
+  if (enableWeb) {
+    tips.push('Web: run `run:web` to preview your app in the browser.');
+  }
 
   p.note(
     [...nextSteps, '', ...tips.map(t => ui.tip(t))].join('\n'),

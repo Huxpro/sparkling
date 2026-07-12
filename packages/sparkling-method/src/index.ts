@@ -4,7 +4,8 @@
 
 /// <reference path="typing.d.ts" />
 
-import type { PipeResponse, PipeErrorResponse, PipeCallOptions, MethodMap, EventCallback } from './types';
+import type { PipeResponse, PipeErrorResponse, PipeCallOptions, MethodMap, EventCallback, WebMethodHandler } from './types';
+import { getWebMethodHandler } from './web-registry';
 
 export type {
     PipeResponse,
@@ -12,6 +13,7 @@ export type {
     PipeCallOptions,
     MethodMap,
     EventCallback,
+    WebMethodHandler,
 };
 
 /**
@@ -88,6 +90,28 @@ const LynxPipe = {
             method = methodMap;
         } else {
             callback(createErrorResponse(-1, 'Invalid methodMap: must be a non-empty string or object with module and method'));
+            return;
+        }
+
+        // Web handler dispatch — if a handler is registered, use it.
+        // On native the registry is empty (no /web imports), so this is a no-op.
+        // On web, @lynx-js/web-core provides a NativeModules stub without spkPipe,
+        // so we must dispatch here before the NativeModules checks below.
+        const webHandler = getWebMethodHandler(method);
+        if (webHandler) {
+            try {
+                webHandler(
+                    {
+                        containerID: getContainerID(),
+                        protocolVersion: '1.0.0',
+                        data: params ?? null,
+                    },
+                    callback
+                );
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                callback(createErrorResponse(-5, `Web pipe call failed: ${errorMsg}`));
+            }
             return;
         }
 
