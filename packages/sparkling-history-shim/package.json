@@ -1,0 +1,49 @@
+{
+  "name": "sparkling-history-shim",
+  "version": "0.1.0",
+  "description": "DOM history/location/popstate/URL emulation over a pluggable native navigation host (sparkling-navigation included)",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/sparkling-history-shim"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./sparkling-host": {
+      "types": "./dist/src/hosts/sparkling.d.ts",
+      "default": "./dist/src/hosts/sparkling.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "sparkling-host": ["dist/src/hosts/sparkling.d.ts"]
+    }
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "build": "tsc"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "sparkling-navigation": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.8.3"
+  }
+}
