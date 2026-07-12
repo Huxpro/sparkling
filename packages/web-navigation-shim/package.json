@@ -1,0 +1,56 @@
+{
+  "name": "web-navigation-shim",
+  "version": "2.1.0-rc.12",
+  "description": "Framework-agnostic Web navigation/history API shim over a pluggable NavigationHost contract (Sparkling, Lynx, or any native multi-page host)",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/web-navigation-shim"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./memory": {
+      "types": "./dist/hosts/memory.d.ts",
+      "default": "./dist/hosts/memory.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "memory": [
+        "dist/hosts/memory.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18",
+    "vue-router": "^5.1.0",
+    "vue": "^3.5.13",
+    "@vue/runtime-core": "^3.5.13"
+  },
+  "keywords": [
+    "history",
+    "navigation",
+    "shim",
+    "lynx",
+    "sparkling",
+    "router"
+  ],
+  "license": "Apache-2.0"
+}
