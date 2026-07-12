@@ -3,22 +3,24 @@
 // LICENSE file in the root directory of this source tree.
 
 /**
- * Pre-build step that turns the local monorepo `examples/*` packages into
- * assets the go-web `<Go>` component can consume.
+ * Pre-build step that turns local monorepo examples into assets the go-web
+ * `<Go>` component can consume.
  *
- * For every example it:
+ * Two kinds of source are supported:
+ *   1. Standalone example apps under `examples/*` (built via `pnpm build`,
+ *      one example per directory).
+ *   2. Explicitly registered monorepo packages (see PACKAGE_SOURCES) — e.g.
+ *      the Sparkling Go playground, exposed as a single multi-entry example.
+ *
+ * For each example it:
  *   1. generates an `example-metadata.json` (the schema `@lynx-js/go-web`
  *      expects — `name`, `files`, `templateFiles[{name,file,webFile}]`,
  *      `previewImage`, `exampleGitBaseUrl`);
- *   2. copies the browsable source files + built `dist/` bundles + preview
- *      image into `public/examples/<name>/`.
- *
- * This is the local-monorepo equivalent of go-web's registry-fetching
- * `prepare-examples` — instead of downloading published `@lynx-example/*`
- * packages, we read the examples that live in this repo.
+ *   2. copies the browsable source files + built bundles into
+ *      `public/examples/<name>/`.
  *
  * Usage:
- *   node scripts/prepare-examples.mjs           # build missing dist/, then generate
+ *   node scripts/prepare-examples.mjs             # build missing bundles, then generate
  *   node scripts/prepare-examples.mjs --no-build  # only generate from existing files
  */
 
@@ -31,10 +33,37 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(__dirname, '../../..')
 const EXAMPLES_SRC = path.resolve(REPO_ROOT, 'examples')
 const EXAMPLES_DEST = path.resolve(__dirname, '../public/examples')
-const EXAMPLE_GIT_BASE_URL =
-  'https://github.com/tiktok/sparkling/tree/main/examples'
+const GIT_TREE = 'https://github.com/tiktok/sparkling/tree/main'
 
 const noBuild = process.argv.includes('--no-build')
+
+/**
+ * Monorepo packages surfaced as examples (in addition to `examples/*`).
+ * The playground is one app with many entries; we expose it as a single
+ * multi-entry example and only surface the feature demos (not the nav hubs).
+ */
+const PACKAGE_SOURCES = [
+  {
+    name: 'sparkling-go',
+    dir: path.resolve(REPO_ROOT, 'packages/playground'),
+    // Entries live in the shared config, not lynx.config.ts.
+    configFile: 'lynx.shared.config.ts',
+    // Emits *.web.bundle + *.lynx.bundle with an HTTP assetPrefix into dist-web/
+    // (kept separate from the native `dist/`).
+    buildScript: 'build:web',
+    bundleDir: 'dist-web',
+    gitPath: 'packages/playground',
+    includeEntries: [
+      'scheme-builder', 'scheme-presets',
+      'nav-basic', 'nav-chain',
+      'gp-device', 'gp-screen', 'gp-container',
+      'storage-demo',
+      'media-choose', 'media-upload', 'media-download',
+    ],
+    // Don't browse the native shells / generated dirs as source.
+    skipDirs: ['android', 'ios', '.sparkling', 'coverage'],
+  },
+]
 
 // Binary asset extensions that shouldn't be copied as browsable source.
 const BINARY_EXTENSIONS = new Set([
@@ -46,16 +75,18 @@ const BINARY_EXTENSIONS = new Set([
 ])
 
 // Directories never worth scanning/copying as source.
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.cache', '.git', '.turbo'])
+const SKIP_DIRS = new Set([
+  'node_modules', 'dist', 'dist-web', '.cache', '.git', '.turbo',
+])
 
 /** Walk a directory recursively, returning paths relative to `base`. */
-function walkDir(dir, base = dir) {
+function walkDir(dir, base = dir, skip = SKIP_DIRS) {
   const results = []
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (SKIP_DIRS.has(entry.name)) continue
+    if (skip.has(entry.name)) continue
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
-      results.push(...walkDir(fullPath, base))
+      results.push(...walkDir(fullPath, base, skip))
     } else {
       // Normalise to POSIX separators — these become URL/metadata paths.
       results.push(path.relative(base, fullPath).split(path.sep).join('/'))
@@ -64,7 +95,7 @@ function walkDir(dir, base = dir) {
   return results
 }
 
-/** Recursively copy a directory verbatim (used for built `dist/`). */
+/** Recursively copy a directory verbatim (used for built bundles). */
 function copyDirRecursive(src, dest) {
   fs.mkdirSync(dest, { recursive: true })
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
@@ -92,7 +123,7 @@ function isTextFile(relPath) {
 }
 
 /**
- * Extract entry names from `lynx.config.ts`'s `source.entry: { name: path }`.
+ * Extract entry names from a config's `source.entry: { name: path }`.
  * A small regex parser — enough for the standard rspeedy config shape.
  */
 function parseEntries(configPath) {
@@ -105,41 +136,105 @@ function parseEntries(configPath) {
   const entryRegex = /['"]?([\w-]+)['"]?\s*:\s*['"]([^'"]+)['"]/g
   let match
   while ((match = entryRegex.exec(entryMatch[1])) !== null) {
-    entries.push({ name: match[1], entryPath: match[2] })
+    entries.push(match[1])
   }
   return entries
 }
 
-/** Generate metadata + copy assets for one example directory. */
-function processExample(exampleName) {
-  const srcDir = path.join(EXAMPLES_SRC, exampleName)
-  const destDir = path.join(EXAMPLES_DEST, exampleName)
-  if (!fs.statSync(srcDir).isDirectory()) return
+/**
+ * Normalise `examples/*` dirs and PACKAGE_SOURCES into a single source list.
+ * @returns {Array<{name,dir,configFile,buildScript,bundleDir,gitBaseUrl,includeEntries?,skipSet}>}
+ */
+function collectSources() {
+  const sources = []
 
-  console.info(`Processing example: ${exampleName}`)
+  if (fs.existsSync(EXAMPLES_SRC)) {
+    for (const d of fs.readdirSync(EXAMPLES_SRC, { withFileTypes: true })) {
+      if (!d.isDirectory() || SKIP_DIRS.has(d.name)) continue
+      const dir = path.join(EXAMPLES_SRC, d.name)
+      if (!fs.existsSync(path.join(dir, 'package.json'))) continue
+      sources.push({
+        name: d.name,
+        dir,
+        configFile: 'lynx.config.ts',
+        buildScript: 'build',
+        bundleDir: 'dist',
+        gitBaseUrl: `${GIT_TREE}/examples/${d.name}`,
+        includeEntries: null,
+        skipSet: SKIP_DIRS,
+      })
+    }
+  }
 
-  const allFiles = walkDir(srcDir)
+  for (const s of PACKAGE_SOURCES) {
+    if (!fs.existsSync(s.dir)) {
+      console.warn(`  ⚠ package source not found, skipping: ${s.dir}`)
+      continue
+    }
+    sources.push({
+      name: s.name,
+      dir: s.dir,
+      configFile: s.configFile ?? 'lynx.config.ts',
+      buildScript: s.buildScript ?? 'build',
+      bundleDir: s.bundleDir ?? 'dist',
+      gitBaseUrl: `${GIT_TREE}/${s.gitPath}`,
+      includeEntries: s.includeEntries ?? null,
+      skipSet: new Set([...SKIP_DIRS, ...(s.skipDirs ?? [])]),
+    })
+  }
+
+  return sources
+}
+
+/** Build a source's bundles if they're missing (best-effort). */
+function ensureBuilt(source) {
+  const bundlePath = path.join(source.dir, source.bundleDir)
+  if (fs.existsSync(bundlePath)) return
+  console.info(`Building ${source.name} (no ${source.bundleDir}/ found)`)
+  try {
+    execSync(`pnpm run ${source.buildScript}`, {
+      cwd: source.dir,
+      stdio: 'inherit',
+    })
+  } catch (err) {
+    console.error(`  ⚠ Failed to build ${source.name}: ${err.message}`)
+  }
+}
+
+/** Generate metadata + copy assets for one source. */
+function processSource(source) {
+  const { name, dir, bundleDir, skipSet } = source
+  const destDir = path.join(EXAMPLES_DEST, name)
+
+  console.info(`Processing example: ${name}`)
+
+  const allFiles = walkDir(dir, dir, skipSet)
   const textFiles = allFiles.filter((f) => isPreviewImage(f) || isTextFile(f))
   const previewImage = allFiles.find(isPreviewImage) || undefined
 
-  // Build `templateFiles`, mapping each rspeedy entry to its bundle outputs.
-  const entries = parseEntries(path.join(srcDir, 'lynx.config.ts'))
-  const templateFiles = entries.map(({ name }) => {
-    const entry = { name, file: `dist/${name}.lynx.bundle` }
+  // Build `templateFiles`, mapping each (included) entry to its bundle outputs.
+  let entries = parseEntries(path.join(dir, source.configFile))
+  if (source.includeEntries) {
+    const wanted = new Set(source.includeEntries)
+    entries = entries.filter((e) => wanted.has(e))
+  }
+  const bundleSrc = path.join(dir, bundleDir)
+  const templateFiles = entries.map((entry) => {
+    const meta = { name: entry, file: `dist/${entry}.lynx.bundle` }
     // rspeedy's `web` environment emits `<name>.web.bundle` — only advertise
     // it when it actually exists so <Go> can fall back gracefully.
-    if (fs.existsSync(path.join(srcDir, `dist/${name}.web.bundle`))) {
-      entry.webFile = `dist/${name}.web.bundle`
+    if (fs.existsSync(path.join(bundleSrc, `${entry}.web.bundle`))) {
+      meta.webFile = `dist/${entry}.web.bundle`
     }
-    return entry
+    return meta
   })
 
   const metadata = {
-    name: exampleName,
+    name,
     files: textFiles.filter((f) => !isPreviewImage(f)),
     templateFiles,
     previewImage,
-    exampleGitBaseUrl: `${EXAMPLE_GIT_BASE_URL}/${exampleName}`,
+    exampleGitBaseUrl: source.gitBaseUrl,
   }
 
   fs.mkdirSync(destDir, { recursive: true })
@@ -152,23 +247,22 @@ function processExample(exampleName) {
   for (const relPath of textFiles) {
     const destFile = path.join(destDir, relPath)
     fs.mkdirSync(path.dirname(destFile), { recursive: true })
-    fs.copyFileSync(path.join(srcDir, relPath), destFile)
+    fs.copyFileSync(path.join(dir, relPath), destFile)
   }
 
-  // Copy the whole dist/ (bundles + any static assets they reference).
-  const distSrcDir = path.join(srcDir, 'dist')
-  if (fs.existsSync(distSrcDir)) {
-    copyDirRecursive(distSrcDir, path.join(destDir, 'dist'))
+  // Copy the built bundles into a canonical `dist/` (metadata always points there).
+  if (fs.existsSync(bundleSrc)) {
+    copyDirRecursive(bundleSrc, path.join(destDir, 'dist'))
   } else {
     console.warn(
-      `  ⚠ ${exampleName} has no dist/ — web/QR preview will be unavailable ` +
+      `  ⚠ ${name} has no ${bundleDir}/ — web/QR preview will be unavailable ` +
         `until it is built.`,
     )
   }
 
   if (previewImage) {
     fs.copyFileSync(
-      path.join(srcDir, previewImage),
+      path.join(dir, previewImage),
       path.join(destDir, previewImage),
     )
   }
@@ -182,36 +276,16 @@ function processExample(exampleName) {
 // --- Main -----------------------------------------------------------------
 
 console.info('Preparing examples...')
-console.info(`Source: ${EXAMPLES_SRC}`)
-console.info(`Dest:   ${EXAMPLES_DEST}`)
+console.info(`Dest: ${EXAMPLES_DEST}`)
 
-if (!fs.existsSync(EXAMPLES_SRC)) {
-  console.info('No examples/ directory found — nothing to do.')
+const sources = collectSources()
+if (sources.length === 0) {
+  console.info('No example sources found — nothing to do.')
   process.exit(0)
 }
 
-const examples = fs
-  .readdirSync(EXAMPLES_SRC, { withFileTypes: true })
-  .filter((d) => d.isDirectory() && !SKIP_DIRS.has(d.name))
-  .filter((d) => fs.existsSync(path.join(EXAMPLES_SRC, d.name, 'package.json')))
-  .map((d) => d.name)
-
-// Build any example missing its dist/ (e.g. on CI where dist/ is gitignored).
-// Best-effort: a build failure warns but never aborts the whole site build.
 if (!noBuild) {
-  for (const example of examples) {
-    const distDir = path.join(EXAMPLES_SRC, example, 'dist')
-    if (fs.existsSync(distDir)) continue
-    console.info(`Building example: ${example} (no dist/ found)`)
-    try {
-      execSync('pnpm build', {
-        cwd: path.join(EXAMPLES_SRC, example),
-        stdio: 'inherit',
-      })
-    } catch (err) {
-      console.error(`  ⚠ Failed to build ${example}: ${err.message}`)
-    }
-  }
+  for (const source of sources) ensureBuilt(source)
 }
 
 // Clean and regenerate the destination.
@@ -220,8 +294,6 @@ if (fs.existsSync(EXAMPLES_DEST)) {
 }
 fs.mkdirSync(EXAMPLES_DEST, { recursive: true })
 
-for (const example of examples) {
-  processExample(example)
-}
+for (const source of sources) processSource(source)
 
-console.info(`\nDone! Processed ${examples.length} example(s).`)
+console.info(`\nDone! Processed ${sources.length} example source(s).`)

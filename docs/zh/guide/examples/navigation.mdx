@@ -1,0 +1,31 @@
+# 导航
+
+Sparkling 使用统一的 URL scheme 在 Lynx 页面与原生页面之间路由。以下示例来自
+Sparkling Go playground。
+
+:::tip
+导航会调用原生桥，因此点击按钮只能在 Sparkling 容器内跳转。请使用**二维码**
+标签页在真机上运行。
+:::
+
+## 传递数据
+
+以 `queryItems` 的形式向目标页面传递自定义参数。
+
+<Go
+  example="sparkling-go"
+  defaultEntryName="nav-basic"
+  defaultFile="src/pages/nav-basic/App.tsx"
+  entry="src/pages/nav-basic"
+/>
+
+## 导航栈
+
+push/pop 多级页面栈。
+
+<Go
+  example="sparkling-go"
+  defaultEntryName="nav-chain"
+  defaultFile="src/pages/nav-chain/App.tsx"
+  entry="src/pages/nav-chain"
+/>

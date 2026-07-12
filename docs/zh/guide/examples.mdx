@@ -1,14 +1,18 @@
 # 示例
 
-Sparkling 提供了一组可运行的 Lynx 示例。下面每个示例都通过
+Sparkling 提供了一组可运行的 Lynx 示例。每个示例都通过
 [`<Go>`](https://github.com/lynx-community/go-web) 组件嵌入，你可以：
 
 - **浏览源码** —— 逐个文件阅读完整示例。
 - **网页预览** —— 在浏览器中实时运行该 Lynx 页面。
-- **扫码上真机** —— 通过二维码在 Lynx Explorer 中打开。
+- **扫码上真机** —— 通过二维码在 Lynx Explorer（已集成 Sparkling）中打开，
+  真正运行原生能力。
 
-所有示例都位于 monorepo 的 [`examples/`](https://github.com/tiktok/sparkling/tree/main/examples)
-目录下，每个都是独立的 Sparkling 应用，可作为起点直接复制。
+:::tip 网页预览 vs 真机
+**网页预览**会在浏览器中渲染 UI，但 Sparkling 的原生 method 桥（导航、存储、
+媒体、全局属性）只能在 Sparkling 容器内运行。要体验这些能力，请使用**二维码**
+标签页，在手机的 Lynx Explorer 中打开示例。
+:::
 
 ## Hello World
 
@@ -16,15 +20,21 @@ Sparkling 提供了一组可运行的 Lynx 示例。下面每个示例都通过
 
 <Go example="hello-world" defaultFile="src/App.tsx" defaultEntryName="main" />
 
+## Sparkling Go 示例
+
+[Sparkling Go playground](https://github.com/tiktok/sparkling/tree/main/packages/playground)
+是一个演示全部内置能力的完整应用。其示例按功能分组：
+
+- [**导航**](/zh/guide/examples/navigation) —— 基于 scheme 的 push/pop 与页面间传参。
+- [**Scheme**](/zh/guide/examples/scheme) —— 构建并预览 Sparkling scheme URL。
+- [**全局属性**](/zh/guide/examples/global-props) —— 读取设备、屏幕与容器信息。
+- [**存储**](/zh/guide/examples/storage) —— 持久化并读取键值数据。
+- [**媒体**](/zh/guide/examples/media) —— 选择、上传与下载媒体。
+
 ## 工作原理
 
-网站会把 `examples/*` 下的每个目录变成一个在线嵌入示例：
-
-1. `packages/website/scripts/prepare-examples.mjs` 扫描 monorepo，构建每个示例的
-   `dist/`（用于浏览器的 `*.web.bundle` 与用于真机的 `*.lynx.bundle`），并在
-   `public/examples/<name>/` 下写入符合 go-web 规范的 `example-metadata.json`。
-2. `<Go>` 组件读取该元数据，渲染源码浏览器、网页预览与二维码。
-
-要添加自己的示例，在 `examples/` 下新增一个包，并在文档页面中用
-`<Go example="your-example" ... />` 引用它。详见
-[examples README](https://github.com/tiktok/sparkling/tree/main/examples)。
+`packages/website/scripts/prepare-examples.mjs` 会把 `examples/*` 下的每个目录
+以及 `packages/playground` 应用变成在线嵌入示例：构建每个示例（用于浏览器的
+`*.web.bundle` 与用于真机的 `*.lynx.bundle`），写入符合 go-web 规范的
+`example-metadata.json`，并复制到 `public/examples/<name>/`。`<Go>` 组件读取该
+元数据。

@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Editor artifacts
 .DS_Store
+
+# Website (go-web) build output
+dist-web/
