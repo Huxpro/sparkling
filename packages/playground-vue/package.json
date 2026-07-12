@@ -1,0 +1,35 @@
+{
+  "name": "sparkling-playground-vue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue-Lynx demo: vue-router driving Sparkling multi-page native navigation via sparkling-history",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/playground-vue"
+  },
+  "scripts": {
+    "build": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-storage --filter sparkling-media --filter sparkling-history build && rspeedy build",
+    "build:web": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-storage --filter sparkling-media --filter sparkling-history build && rspeedy build --environment web",
+    "dev": "rspeedy dev",
+    "dev:web": "rspeedy build --environment web && pnpm --filter sparkling-web-shell dev",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "sparkling-history": "workspace:*",
+    "sparkling-method": "workspace:*",
+    "sparkling-navigation": "workspace:*",
+    "vue-lynx": "0.4.0",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@lynx-js/rspeedy": "^0.13.3",
+    "@rsbuild/plugin-vue": "^1.2.6",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "^22 || ^24"
+  }
+}

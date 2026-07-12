@@ -62,6 +62,20 @@ describe('cross-container navigation', () => {
     expect(detailHistory.state).toEqual({ from: 'home', count: 2 })
   })
 
+  it('preserves the initial cross-heap state through the router first-nav replace', async () => {
+    // vue-router's first navigation is `replace(fullPath, { scroll })`, which
+    // must NOT wipe the state decoded from the container URL. This mirrors the
+    // browser HTML5 history where replaceState merges the existing state.
+    const env = createMemoryNavigationEnvironment()
+    const root = env.open(codec.encode('/', { depth: 0 })!)
+    await historyFor(root).pushExternal('/detail/1', { greeting: 'hi' })
+
+    const detailHistory = historyFor(env.top!)
+    // simulate the router install replacing the current location on boot
+    detailHistory.replace(detailHistory.location, { scroll: false })
+    expect(detailHistory.state).toEqual({ greeting: 'hi', scroll: false })
+  })
+
   it('pushExternal with replace swaps the current container', async () => {
     const env = createMemoryNavigationEnvironment()
     env.open(codec.encode('/', { depth: 0 })!)

@@ -106,9 +106,14 @@ export function createHybridHistory(
       setLocation(to, state)
     },
 
-    replace(to, state?: HistoryState) {
+    replace(to, data?: HistoryState) {
+      // Mirror vue-router's HTML5 history: replaceState merges the existing
+      // entry's state with the new data (`assign({}, history.state, data)`).
+      // This is what preserves the initial cross-heap state through the
+      // router's first navigation, which is a `replace(fullPath, { scroll })`.
+      const merged: HistoryState = { ...queue[position][1], ...data }
       queue.splice(position--, 1)
-      setLocation(to, state)
+      setLocation(to, merged)
     },
 
     go(delta, shouldTrigger = true) {
