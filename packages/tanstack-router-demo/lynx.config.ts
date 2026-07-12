@@ -34,7 +34,6 @@ export default defineConfig({
     },
   },
   output: {
-    minify: false,
     assetPrefix: 'asset:///',
     filename: {
       bundle: '[name].lynx.bundle',
