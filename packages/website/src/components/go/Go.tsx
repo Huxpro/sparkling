@@ -9,6 +9,9 @@ import {
   type GoProps,
 } from '@lynx-js/go-web';
 import { rspressAdapter } from '@lynx-js/go-web/adapters/rspress';
+// Wire Sparkling's Web method support (tiktok/sparkling#22) into the <lynx-view>
+// preview so demos can run Sparkling navigation/storage/media in the browser.
+import './sparkling-web-bridge';
 
 // The `<Go>` component embeds live Lynx examples on the web: code browsing, an
 // in-browser web preview, and a QR code for on-device testing.
