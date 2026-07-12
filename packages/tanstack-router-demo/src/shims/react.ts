@@ -9,8 +9,13 @@
 //
 // The bundler aliases `react$` to this file; @lynx-js/react imports below
 // still resolve through ReactLynx's per-thread layer aliases.
+import * as LynxReact from '@lynx-js/react';
+
 export * from '@lynx-js/react';
-export { default } from '@lynx-js/react';
 export { startTransition, useTransition } from '@lynx-js/react/compat';
 
 export const use = undefined;
+
+// @lynx-js/react provides a runtime default export (the lepus namespace) even
+// though its published types do not declare one; fall back to the namespace.
+export default (LynxReact as { default?: unknown }).default ?? LynxReact;

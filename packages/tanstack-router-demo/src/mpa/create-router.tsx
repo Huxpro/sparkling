@@ -1,0 +1,68 @@
+// Copyright (c) 2026 TikTok Pte. Ltd.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+import { createRouter } from '@tanstack/react-router';
+import {
+  createMpaHistory,
+  createManifestPageResolver,
+} from 'sparkling-history';
+import { createSparklingHost } from 'sparkling-history/sparkling';
+import * as navigation from 'sparkling-navigation';
+import { manifest, routeTree } from './routes.js';
+
+/**
+ * Read this page's launch query params. On a real sparkling page these are
+ * injected by the native container (or, on the web harness, by the shell) as
+ * `lynx.__globalProps.queryItems`.
+ */
+function readQueryItems(): Record<string, string> {
+  // `lynx` is a bare ambient global in the Lynx runtime (not necessarily on
+  // globalThis), so reference it directly with a guarded fallback.
+  const g = globalThis as {
+    lynx?: { __globalProps?: { queryItems?: Record<string, string> } };
+  };
+  const lynxGlobal =
+    typeof lynx !== 'undefined'
+      ? (lynx as { __globalProps?: { queryItems?: Record<string, string> } })
+      : g.lynx;
+  return lynxGlobal?.__globalProps?.queryItems ?? {};
+}
+
+function LynxErrorComponent({ error }: { error: Error }) {
+  console.error('[mpa] route error:', error.message, error.stack);
+  return (
+    <view style={{ padding: '48px 20px' }}>
+      <text style={{ color: '#f87171', fontSize: '15px' }}>{`Error: ${error.message}`}</text>
+    </view>
+  );
+}
+
+/**
+ * Build a TanStack Router wired to sparkling-navigation through the history
+ * shim. Cross-page navigations become native page opens; in-page navigations
+ * stay within this bundle.
+ */
+export function createMpaRouter() {
+  const host = createSparklingHost({
+    navigation: navigation as never,
+    getQueryItems: readQueryItems,
+  });
+
+  const history = createMpaHistory({
+    host,
+    resolvePage: createManifestPageResolver(manifest),
+    onHostError: (e) => console.error('[mpa] host error:', e),
+  });
+
+  return createRouter({
+    routeTree,
+    history: history as never,
+    isServer: false,
+    defaultErrorComponent: LynxErrorComponent as never,
+    defaultNotFoundComponent: (() => (
+      <view style={{ padding: '48px 20px' }}>
+        <text style={{ color: '#f87171' }}>Not found</text>
+      </view>
+    )) as never,
+  });
+}

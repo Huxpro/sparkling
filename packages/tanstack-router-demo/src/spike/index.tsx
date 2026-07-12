@@ -96,7 +96,6 @@ const router = createRouter({
   routeTree,
   history: createMemoryHistory({ initialEntries: ['/'] }),
   isServer: false,
-  defaultSsr: false,
   defaultErrorComponent: LynxErrorComponent as never,
   defaultNotFoundComponent: (() => (
     <view>

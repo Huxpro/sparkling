@@ -19,6 +19,7 @@
   "dependencies": {
     "@lynx-js/react": "^0.116.2",
     "@tanstack/react-router": "1.170.17",
+    "sparkling-history": "workspace:*",
     "sparkling-method": "workspace:*",
     "sparkling-navigation": "workspace:*"
   },

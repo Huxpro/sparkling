@@ -11,7 +11,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   source: {
     entry: {
+      // Feasibility spike (single page, memory history).
       spike: './src/spike/index.tsx',
+      // MPA demo: each entry is a page bundle with its own JS context.
+      home: './src/pages/home/index.tsx',
+      detail: './src/pages/detail/index.tsx',
+      settings: './src/pages/settings/index.tsx',
     },
   },
   resolve: {
