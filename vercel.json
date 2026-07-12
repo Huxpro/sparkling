@@ -1,7 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter '@sparkling-example/*' build && pnpm --filter sparkling-website build",
+  "buildCommand": "DOCS_BASE=/ pnpm --filter sparkling-website build",
   "outputDirectory": "packages/website/doc_build",
-  "cleanUrls": true
+  "trailingSlash": false,
+  "github": {
+    "silent": true
+  }
 }

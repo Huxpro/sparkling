@@ -8,11 +8,19 @@ const require = createRequire(import.meta.url);
 const rootPkg = require('../../package.json');
 const SPARKLING_VERSION: string = rootPkg.version;
 
-// GitHub Pages serves this as a project site under `/sparkling/`, so all asset
-// URLs need that prefix there. Vercel serves the deployment at the domain root,
-// where the `/sparkling/` prefix would 404 (broken CSS/JS/logo). Vercel sets
-// `VERCEL=1` during builds, so switch the base accordingly.
-const BASE = process.env.VERCEL ? '/' : '/sparkling/';
+// ---------------------------------------------------------------------------
+// Base path
+// ---------------------------------------------------------------------------
+// GitHub Pages serves the site under a project sub-path (`/sparkling/`), while
+// Vercel serves it from the domain root (`/`). The base is therefore driven by
+// the `DOCS_BASE` env var so the same config powers both deployments.
+// Vercel sets `DOCS_BASE=/` (see the repo-root `vercel.json`); everything else
+// falls back to the GitHub Pages default.
+const rawBase = process.env.DOCS_BASE ?? '/sparkling/';
+// Normalise to a leading + trailing slash so path joins stay predictable.
+const BASE = `/${rawBase.replace(/^\/+|\/+$/g, '')}/`.replace(/\/{2,}/g, '/');
+// Join the base with a public-dir asset path (e.g. `sparkling_logo_144.png`).
+const asset = (p: string): string => `${BASE}${p.replace(/^\/+/, '')}`;
 
 const githubSocialIcon = {
   svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -225,10 +233,10 @@ export default defineConfig({
   title: 'Sparkling',
   description:
     "Sparkling is TikTok\u2019s hybrid container spanning Android, iOS, and Lynx.",
-  icon: `${BASE}sparkling_logo_144.png`,
+  icon: asset('sparkling_logo_144.png'),
   logo: {
-    light: `${BASE}sparkling_logo_144_light.png`,
-    dark: `${BASE}sparkling_logo_144.png`,
+    light: asset('sparkling_logo_144_light.png'),
+    dark: asset('sparkling_logo_144.png'),
   },
   logoText: 'Sparkling',
   themeConfig: {
