@@ -1,0 +1,30 @@
+# 示例
+
+Sparkling 提供了一组可运行的 Lynx 示例。下面每个示例都通过
+[`<Go>`](https://github.com/lynx-community/go-web) 组件嵌入，你可以：
+
+- **浏览源码** —— 逐个文件阅读完整示例。
+- **网页预览** —— 在浏览器中实时运行该 Lynx 页面。
+- **扫码上真机** —— 通过二维码在 Lynx Explorer 中打开。
+
+所有示例都位于 monorepo 的 [`examples/`](https://github.com/tiktok/sparkling/tree/main/examples)
+目录下，每个都是独立的 Sparkling 应用，可作为起点直接复制。
+
+## Hello World
+
+一个带点击计数器的最小 Sparkling Lynx 页面。
+
+<Go example="hello-world" defaultFile="src/App.tsx" defaultEntryName="main" />
+
+## 工作原理
+
+网站会把 `examples/*` 下的每个目录变成一个在线嵌入示例：
+
+1. `packages/website/scripts/prepare-examples.mjs` 扫描 monorepo，构建每个示例的
+   `dist/`（用于浏览器的 `*.web.bundle` 与用于真机的 `*.lynx.bundle`），并在
+   `public/examples/<name>/` 下写入符合 go-web 规范的 `example-metadata.json`。
+2. `<Go>` 组件读取该元数据，渲染源码浏览器、网页预览与二维码。
+
+要添加自己的示例，在 `examples/` 下新增一个包，并在文档页面中用
+`<Go example="your-example" ... />` 引用它。详见
+[examples README](https://github.com/tiktok/sparkling/tree/main/examples)。

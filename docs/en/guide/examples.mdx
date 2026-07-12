@@ -1,0 +1,35 @@
+# Examples
+
+Sparkling ships a gallery of runnable Lynx examples. Each one is embedded below
+with the [`<Go>`](https://github.com/lynx-community/go-web) component, which lets
+you:
+
+- **Browse the source** — read the full example, file by file.
+- **Preview on the web** — run the Lynx page live in your browser.
+- **Scan to run on device** — open it in Lynx Explorer via QR code.
+
+The examples themselves live in the [`examples/`](https://github.com/tiktok/sparkling/tree/main/examples)
+directory of the monorepo — each is a standalone Sparkling app you can copy as a
+starting point.
+
+## Hello World
+
+A minimal Sparkling Lynx page with a tap counter.
+
+<Go example="hello-world" defaultFile="src/App.tsx" defaultEntryName="main" />
+
+## How it works
+
+The website turns every folder under `examples/*` into a live embed:
+
+1. `packages/website/scripts/prepare-examples.mjs` scans the monorepo, builds
+   each example's `dist/` (a `*.web.bundle` for the browser and a
+   `*.lynx.bundle` for the device), and writes a go-web `example-metadata.json`
+   into `public/examples/<name>/`.
+2. The `<Go>` component reads that metadata to render the source browser, web
+   preview, and QR code.
+
+To add your own, drop a new package under `examples/` and reference it from a
+docs page with `<Go example="your-example" ... />`. See the
+[examples README](https://github.com/tiktok/sparkling/tree/main/examples) for
+details.
