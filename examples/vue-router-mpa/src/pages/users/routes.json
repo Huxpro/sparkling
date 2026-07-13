@@ -1,0 +1,6 @@
+{
+  "routes": [
+    "/users",
+    { "path": "/users/:id", "name": "user-detail" }
+  ]
+}
