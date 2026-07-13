@@ -1,0 +1,4 @@
+{
+  "routes": ["/settings"],
+  "params": { "title": "Settings" }
+}
