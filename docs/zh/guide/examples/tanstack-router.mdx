@@ -42,6 +42,11 @@ bundle）。而 **Detail** 与 **Settings** 按钮会跨越原生页面边界：
 （见上方提示），`location:` 一行会显示参数完成了这趟旅程。点击 **Detail #42 →**
 即可看到 `/detail/42?ref=home` 渲染出来，`id=42` 正是从 scheme 中重建的。
 
+每次导航都带有原生风格的 push/pop 滑动动画 —— 前进时新页面从右侧滑入，后退时从
+左侧滑入。它只是一段普通的 Lynx CSS `@keyframes` 动画，按 history 栈索引选择方向
+（`src/transitions.css` + `src/ui.tsx` 里的 `PageTransition`），因此在预览和真机上
+都会播放。
+
 <Go
   example="tanstack-router"
   defaultEntryName="home"

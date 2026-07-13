@@ -46,6 +46,11 @@ renders the cross-page destinations in-page here (see the tip above), and the
 `location:` line shows the params making the trip. Tap **Detail #42 →** to watch
 `/detail/42?ref=home` render with `id=42` reconstructed from the scheme.
 
+Each navigation animates with a native-style push/pop slide — forward opens
+slide in from the right, back pops from the left. It's a plain Lynx CSS
+`@keyframes` animation keyed to the history stack index (`src/transitions.css` +
+`PageTransition` in `src/ui.tsx`), so it plays both here and on device.
+
 <Go
   example="tanstack-router"
   defaultEntryName="home"
