@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "prepare-examples": "node scripts/prepare-examples.mjs",
-    "dev": "pnpm prepare-examples && rspress dev",
-    "build": "pnpm prepare-examples && rspress build",
+    "build-mpa-preview": "node scripts/build-mpa-preview.mjs",
+    "prepare-previews": "pnpm prepare-examples && pnpm build-mpa-preview",
+    "dev": "pnpm prepare-previews && rspress dev",
+    "build": "pnpm prepare-previews && rspress build",
     "preview": "rspress preview",
     "gen:api": "typedoc && typedoc --options typedoc.app-config.json"
   },

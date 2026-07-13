@@ -68,12 +68,18 @@ const sidebarEn = {
     { text: 'Global Props', link: '/guide/examples/global-props' },
     { text: 'Storage', link: '/guide/examples/storage' },
     { text: 'Media', link: '/guide/examples/media' },
+    { text: 'Vue Router (MPA)', link: '/guide/examples/vue-router' },
     { dividerType: 'solid' },
     { sectionHeaderText: 'Core' },
     { text: 'CLI', link: '/guide/cli' },
     { text: 'Containers', link: '/guide/containers' },
     { text: 'Scheme', link: '/guide/scheme' },
     { text: 'Navigation', link: '/guide/multi-page-navigation' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: 'Web Platform' },
+    { text: 'Web Platform Guide', link: '/guide/web-platform' },
+    { text: 'Web Methods', link: '/guide/web-method-implementations' },
+    { text: 'Limitations', link: '/guide/web-limitations' },
     { dividerType: 'solid' },
     { sectionHeaderText: 'Native Module' },
     { text: 'Custom Methods', link: '/guide/get-started/create-custom-method' },
@@ -146,12 +152,18 @@ const sidebarZhBase = {
     { text: '全局属性', link: '/guide/examples/global-props' },
     { text: '存储', link: '/guide/examples/storage' },
     { text: '媒体', link: '/guide/examples/media' },
+    { text: 'Vue Router (MPA)', link: '/guide/examples/vue-router' },
     { dividerType: 'solid' },
     { sectionHeaderText: '核心' },
     { text: 'CLI', link: '/guide/cli' },
     { text: '容器', link: '/guide/containers' },
     { text: 'Scheme', link: '/guide/scheme' },
     { text: '导航', link: '/guide/multi-page-navigation' },
+    { dividerType: 'solid' },
+    { sectionHeaderText: 'Web 平台' },
+    { text: 'Web 平台指南', link: '/guide/web-platform' },
+    { text: 'Web Methods', link: '/guide/web-method-implementations' },
+    { text: '限制', link: '/guide/web-limitations' },
     { dividerType: 'solid' },
     { sectionHeaderText: '原生模块' },
     { text: '自定义 Method', link: '/guide/get-started/create-custom-method' },
@@ -226,9 +238,12 @@ export default defineConfig({
     link: {
       checkDeadLinks: false,
     },
-    // Register <Go> globally so example docs can embed live Lynx previews
-    // without importing the component in every MDX file.
-    globalComponents: [path.resolve(__dirname, 'src/components/go/Go.tsx')],
+    // Register <Go> and <MpaPreview> globally so example docs can embed live
+    // Lynx previews without importing the components in every MDX file.
+    globalComponents: [
+      path.resolve(__dirname, 'src/components/go/Go.tsx'),
+      path.resolve(__dirname, 'src/components/mpa-preview/MpaPreview.tsx'),
+    ],
   },
   title: 'Sparkling',
   description:
