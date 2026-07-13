@@ -4,6 +4,24 @@
 
 import { registerWebMethod } from 'sparkling-method/web-registry';
 
+/** Options forwarded from `router.open` to the {@link RouterWebHost}. */
+export interface RouterOpenOptions {
+    /** Replace the current entry/container instead of stacking a new one. */
+    replace?: boolean;
+    /**
+     * Whether the host should animate the transition (a full-page host like
+     * `sparkling-web-shell` can slide the new container in). Mirrors the native
+     * `OpenOptions.animated`. Undefined lets the host pick its default.
+     */
+    animated?: boolean;
+}
+
+/** Options forwarded from `router.close` to the {@link RouterWebHost}. */
+export interface RouterCloseOptions {
+    /** Whether the host should animate the pop. Mirrors `CloseOptions.animated`. */
+    animated?: boolean;
+}
+
 /**
  * How web navigation is actually performed. The default host drives the
  * browser History API and assumes the Lynx app owns the whole page (e.g.
@@ -12,14 +30,15 @@ import { registerWebMethod } from 'sparkling-method/web-registry';
  * so navigation stays scoped to the card instead of the top-level document.
  */
 export interface RouterWebHost {
-    open(pageName: string, scheme: string): void;
-    close(): void;
+    open(pageName: string, scheme: string, options?: RouterOpenOptions): void;
+    close(options?: RouterCloseOptions): void;
 }
 
 const defaultHost: RouterWebHost = {
-    open(pageName, scheme) {
+    open(pageName, scheme, options) {
         const state = { page: pageName, scheme };
-        window.history.pushState(state, '', `?page=${encodeURIComponent(pageName)}`);
+        const method = options?.replace ? 'replaceState' : 'pushState';
+        window.history[method](state, '', `?page=${encodeURIComponent(pageName)}`);
         // Notify a full-page host (e.g. the web shell) to swap its <lynx-view>.
         window.dispatchEvent(
             new CustomEvent('sparkling:navigate', { detail: { page: pageName, state } }),
@@ -29,6 +48,12 @@ const defaultHost: RouterWebHost = {
         window.history.back();
     },
 };
+
+/** Read an optional boolean field from the pipe `data` payload. */
+function readBool(data: unknown, key: string): boolean | undefined {
+    const value = (data as Record<string, unknown> | null | undefined)?.[key];
+    return typeof value === 'boolean' ? value : undefined;
+}
 
 let host: RouterWebHost = defaultHost;
 
@@ -71,16 +96,17 @@ registerWebMethod('router.open', (params, callback) => {
             callback({ code: 0, msg: 'No bundle or url param in scheme' });
             return;
         }
-        host.open(pageName, scheme);
+        const replace = (params.data as Record<string, unknown>)?.replace === true;
+        host.open(pageName, scheme, { replace, animated: readBool(params.data, 'animated') });
         callback({ code: 1, msg: 'ok' });
     } catch (e) {
         callback({ code: 0, msg: `Failed to parse scheme: ${e}` });
     }
 });
 
-registerWebMethod('router.close', (_params, callback) => {
+registerWebMethod('router.close', (params, callback) => {
     try {
-        host.close();
+        host.close({ animated: readBool(params.data, 'animated') });
         callback({ code: 1, msg: 'ok' });
     } catch (e) {
         callback({ code: 0, msg: `Failed to close: ${e}` });
