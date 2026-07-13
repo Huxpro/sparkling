@@ -1,0 +1,50 @@
+{
+  "name": "sparkling-history",
+  "version": "2.1.0-rc.12",
+  "description": "Reusable web-history shim that lets URL-driven routers (TanStack Router, React Router, ...) drive native multi-page navigation through a pluggable NavigationHost contract",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/sparkling-history"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./sparkling": {
+      "types": "./dist/hosts/sparkling.d.ts",
+      "default": "./dist/hosts/sparkling.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "sparkling": ["dist/hosts/sparkling.d.ts"]
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "sparkling-navigation": "*"
+  },
+  "peerDependenciesMeta": {
+    "sparkling-navigation": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "sparkling-navigation": "workspace:*",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "license": "Apache-2.0"
+}
