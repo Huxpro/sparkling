@@ -16,11 +16,14 @@ import { ui } from '../utils/ui';
 import { isVerboseEnabled, verboseLog } from '../utils/verbose';
 import { warnIfWildcardDevServerHost } from '../utils/dev-server-host';
 
+export type DevPlatform = 'web' | 'native' | 'all';
+
 export interface DevOptions {
   cwd: string;
   configFile?: string;
   port?: number;
   host?: string;
+  platform?: DevPlatform;
 }
 
 function getEntryKeys(config: { lynxConfig: unknown }): string[] {
@@ -43,6 +46,7 @@ function clearConfigRequireCache(cwd: string, configPath: string): void {
 
 export async function devProject(options: DevOptions): Promise<void> {
   const configFile = options.configFile ?? 'app.config.ts';
+  const platform = options.platform ?? 'all';
   const { config, configPath } = await loadAppConfig(options.cwd, configFile);
   const { devPort, lynxPort } = getConfiguredDevServerPorts(config);
   if (devPort !== undefined && lynxPort !== undefined && devPort !== lynxPort) {
@@ -67,6 +71,7 @@ export async function devProject(options: DevOptions): Promise<void> {
   if (isVerboseEnabled()) {
     verboseLog(`App config path: ${configPath}`);
     verboseLog(`Dev server port: ${port}`);
+    verboseLog(`Dev platform: ${platform}`);
     if (host) {
       verboseLog(`Dev server host: ${host}`);
     }
@@ -76,7 +81,7 @@ export async function devProject(options: DevOptions): Promise<void> {
 
   console.log(
     ui.headline(
-      `Starting Rspeedy dev server on port ${port} with config from ${path.relative(options.cwd, configPath)}`,
+      `Starting Rspeedy dev server (${platform}) on port ${port} with config from ${path.relative(options.cwd, configPath)}`,
     ),
   );
 
@@ -124,7 +129,14 @@ export async function devProject(options: DevOptions): Promise<void> {
       if (isVerboseEnabled()) {
         verboseLog(`Temp Lynx config: ${tempConfigPath}`);
       }
-      child = spawn('rspeedy', ['dev', '--config', tempConfigPath], {
+      const rspeedyArgs = ['dev', '--config', tempConfigPath];
+      if (platform === 'web') {
+        rspeedyArgs.push('--environment', 'web');
+      } else if (platform === 'native') {
+        rspeedyArgs.push('--environment', 'lynx');
+      }
+      // platform === 'all' → no --environment flag → serves all environments
+      child = spawn('rspeedy', rspeedyArgs, {
         cwd: options.cwd,
         env: process.env,
         stdio: 'inherit',
