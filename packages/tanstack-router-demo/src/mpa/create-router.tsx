@@ -13,6 +13,10 @@ import * as navigation from 'sparkling-navigation';
 // Both derive from src/routes/*.
 import { routeTree } from '../routeTree.gen.js';
 import { manifest } from '../routes.manifest.js';
+// Extensionless on purpose: resolves to web-nav/setup.web.ts in the website
+// (go-web) build via the `.web.ts` extension preference, and to the native
+// no-op stub (setup.ts) otherwise. See below.
+import { setupWebNav } from '../web-nav/setup';
 
 /**
  * Read this page's launch query params. On a real sparkling page these are
@@ -52,13 +56,22 @@ export function createMpaRouter() {
     getQueryItems: readQueryItems,
   });
 
+  // In the go-web `<Go>` preview, the sparkling web bridge routes a cross-page
+  // `router.open` back into THIS card (a card renders one bundle and can't swap
+  // to another native page). `setupWebNav` (web build only) does that in-page
+  // re-entry; this flag makes the re-entrant navigation bypass the manifest so
+  // it does not dispatch to the host again (which would loop). On native the
+  // stub is a no-op and the flag stays false.
+  let inCardNav = false;
+  const resolvePage = createManifestPageResolver(manifest);
+
   const history = createMpaHistory({
     host,
-    resolvePage: createManifestPageResolver(manifest),
+    resolvePage: (href, ctx) => (inCardNav ? null : resolvePage(href, ctx)),
     onHostError: (e) => console.error('[mpa] host error:', e),
   });
 
-  return createRouter({
+  const router = createRouter({
     routeTree,
     history: history as never,
     isServer: false,
@@ -72,4 +85,19 @@ export function createMpaRouter() {
       </view>
     )) as never,
   });
+
+  // Web build: register the sparkling `router.open`/`close` web methods and
+  // point their host at this card (in-page). Native build: no-op stub, so the
+  // native bridge is never hijacked.
+  setupWebNav({
+    history,
+    onEnterInPage: () => {
+      inCardNav = true;
+    },
+    onExitInPage: () => {
+      inCardNav = false;
+    },
+  });
+
+  return router;
 }
