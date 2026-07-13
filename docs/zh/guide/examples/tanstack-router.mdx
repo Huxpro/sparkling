@@ -42,10 +42,10 @@ bundle）。而 **Detail** 与 **Settings** 按钮会跨越原生页面边界：
 （见上方提示），`location:` 一行会显示参数完成了这趟旅程。点击 **Detail #42 →**
 即可看到 `/detail/42?ref=home` 渲染出来，`id=42` 正是从 scheme 中重建的。
 
-每次导航都带有原生风格的 push/pop 滑动动画 —— 前进时新页面从右侧滑入，后退时从
-左侧滑入。它只是一段普通的 Lynx CSS `@keyframes` 动画，按 history 栈索引选择方向
-（`src/transitions.css` + `src/ui.tsx` 里的 `PageTransition`），因此在预览和真机上
-都会播放。
+切页动画是**容器**的职责，而非 app：在真机上，跨页 open 由原生容器完成动画
+（`sparkling-navigation` 的 `open`/`close` 上的 `animated` 标志）。go-web 的 Web
+预览把目标页在页内渲染，并不会复现容器动画，因此这里是瞬间切换 —— 扫描二维码即可
+在真机上看到原生切页动画。
 
 <Go
   example="tanstack-router"

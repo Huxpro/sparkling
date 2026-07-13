@@ -58,16 +58,29 @@ describe('createSparklingHost', () => {
     expect(JSON.parse(url.searchParams.get('__mpa_state')!)).toEqual({ scrollTo: 10 });
   });
 
-  test('replace passes options.replace to sparkling open', () => {
+  test('replace passes options.replace to sparkling open (animated by default)', () => {
     const navigation = fakeNavigation();
     const host = createSparklingHost({ navigation, getQueryItems: () => ({}) });
     const resolvePage = createManifestPageResolver(manifest);
     const history = createMpaHistory({ host, resolvePage });
     history.replace('/detail');
-    expect(navigation.openCalls[0]!.options).toEqual({ replace: true });
+    expect(navigation.openCalls[0]!.options).toEqual({ replace: true, animated: true });
   });
 
-  test('back at root calls sparkling close', () => {
+  test('animated: false opts out of the native container transition', () => {
+    const navigation = fakeNavigation();
+    const host = createSparklingHost({
+      navigation,
+      getQueryItems: () => ({}),
+      animated: false,
+    });
+    const resolvePage = createManifestPageResolver(manifest);
+    const history = createMpaHistory({ host, resolvePage });
+    history.push('/detail');
+    expect(navigation.openCalls[0]!.options).toEqual({ replace: false, animated: false });
+  });
+
+  test('back at root calls sparkling close (animated by default)', () => {
     const navigation = fakeNavigation();
     const host = createSparklingHost({
       navigation,
@@ -77,6 +90,7 @@ describe('createSparklingHost', () => {
     const history = createMpaHistory({ host, resolvePage });
     history.back();
     expect(navigation.closeCalls).toHaveLength(1);
+    expect(navigation.closeCalls[0]).toEqual({ animated: true });
   });
 
   test('reconstructs initial href/depth/state from query items (round-trip)', () => {

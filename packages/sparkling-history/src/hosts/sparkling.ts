@@ -59,6 +59,14 @@ export interface SparklingHostOptions {
    * with any leading slash of the id stripped.
    */
   bundleForPage?: (pageId: string) => string;
+  /**
+   * Whether native page opens/closes animate. Passed straight through to
+   * sparkling-navigation's `animated` option, so the *native container* runs
+   * its own push/pop transition — page-transition animation is a container
+   * concern, not something the app renders. Defaults to `true`. A per-call
+   * `close({ animated })` still overrides this for that pop.
+   */
+  animated?: boolean;
 }
 
 const DEFAULT_HREF_PARAM = '__mpa_href';
@@ -93,6 +101,7 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
     stateParam = DEFAULT_STATE_PARAM,
     baseScheme = DEFAULT_BASE_SCHEME,
     bundleForPage = defaultBundleForPage,
+    animated = true,
   } = options;
 
   const query = () => getQueryItems?.() ?? {};
@@ -151,7 +160,7 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
       const scheme = buildScheme(target, depth);
       return new Promise((resolve) => {
         navigation.open(
-          { scheme, options: { replace: target.replace } },
+          { scheme, options: { replace: target.replace, animated } },
           (result) => resolve({ ok: result.code === 1, message: result.msg }),
         );
       });
@@ -159,7 +168,7 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
 
     close(opts?: HostCloseOptions): Promise<HostNavigationResult> {
       return new Promise((resolve) => {
-        navigation.close({ animated: opts?.animated }, (result) =>
+        navigation.close({ animated: opts?.animated ?? animated }, (result) =>
           resolve({ ok: result.code === 1, message: result.msg }),
         );
       });
