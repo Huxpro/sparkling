@@ -68,6 +68,7 @@ const sidebarEn = {
     { text: 'Global Props', link: '/guide/examples/global-props' },
     { text: 'Storage', link: '/guide/examples/storage' },
     { text: 'Media', link: '/guide/examples/media' },
+    { text: 'Vue Router (MPA)', link: '/guide/examples/vue-router' },
     { dividerType: 'solid' },
     { sectionHeaderText: 'Core' },
     { text: 'CLI', link: '/guide/cli' },
@@ -146,6 +147,7 @@ const sidebarZhBase = {
     { text: '全局属性', link: '/guide/examples/global-props' },
     { text: '存储', link: '/guide/examples/storage' },
     { text: '媒体', link: '/guide/examples/media' },
+    { text: 'Vue Router (MPA)', link: '/guide/examples/vue-router' },
     { dividerType: 'solid' },
     { sectionHeaderText: '核心' },
     { text: 'CLI', link: '/guide/cli' },
@@ -226,9 +228,12 @@ export default defineConfig({
     link: {
       checkDeadLinks: false,
     },
-    // Register <Go> globally so example docs can embed live Lynx previews
-    // without importing the component in every MDX file.
-    globalComponents: [path.resolve(__dirname, 'src/components/go/Go.tsx')],
+    // Register <Go> and <MpaPreview> globally so example docs can embed live
+    // Lynx previews without importing the components in every MDX file.
+    globalComponents: [
+      path.resolve(__dirname, 'src/components/go/Go.tsx'),
+      path.resolve(__dirname, 'src/components/mpa-preview/MpaPreview.tsx'),
+    ],
   },
   title: 'Sparkling',
   description:

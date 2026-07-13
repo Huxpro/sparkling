@@ -1,0 +1,95 @@
+# Vue Router (MPA)
+
+This example runs **[Vue Router](https://router.vuejs.org) on top of Sparkling
+navigation**, so a single router configuration drives navigation across
+**multiple native Lynx pages** — the multi-page (MPA) model.
+
+It is built on [`sparkling-history`](https://github.com/tiktok/sparkling/tree/main/packages/sparkling-history),
+a framework-agnostic shim that implements Vue Router's history contract on top
+of Sparkling's `router.open` / `router.close`.
+
+:::info Different from VueLynx's in-view router
+[VueLynx](https://vue.lynxjs.org) supports Vue Router with `createMemoryHistory`
+to build an SPA **inside a single `LynxView`** (one JS heap). This example is
+the opposite: each page is a **separate Lynx container in its own JS heap**,
+and Vue Router drives *native* navigation between them. The heaps share no
+memory — only a build-time route manifest connects them.
+:::
+
+## In-heap navigation (live in the web preview)
+
+The `main` bundle owns two routes, `/` and `/features`. Navigating between them
+is an ordinary Vue Router transition **inside one heap** — no native bridge is
+involved — so it runs live in the web preview below. Tap **Features** (or the
+in-container button) and watch the route change without opening a new page.
+
+<Go
+  example="vue-router-mpa"
+  defaultEntryName="main"
+  defaultFile="src/pages/main/views/Home.vue"
+/>
+
+:::tip This goes beyond the other demos
+Sparkling's other web previews render UI only — their native calls are inert in
+the browser. Here the in-heap route transitions actually work on the web,
+because that regime is pure Vue Router.
+:::
+
+## Dynamic routes (the `users` bundle)
+
+The `users` bundle owns `/users` and the dynamic `/users/:id`. Tapping a user
+is an in-heap navigation with a route param, resolved entirely in this bundle's
+router. This preview boots at the bundle's own default route (`/users`).
+
+<Go
+  example="vue-router-mpa"
+  defaultEntryName="users"
+  defaultFile="src/pages/users/views/UserList.vue"
+/>
+
+## Cross-page navigation (MPA — live demo)
+
+When `router.push` resolves to a route owned by **another** bundle (per the
+route manifest), the shim diverts it to `router.open`, which stacks a **new
+native container**. The previous page stays alive underneath, exactly like a
+native navigation stack.
+
+The `<Go>` previews above render one bundle at a time with no native bridge, so
+cross-page navigation can't run in them. The demo below is different: it opens
+the **Sparkling web shell** in a new tab — the shell stacks a `<lynx-view>` per
+container, provides the `spkPipe` method bridge, and installs a
+`RouterWebHost`, so `router.open` actually opens a new container **in your
+browser**. Tap **push('/users')** and a second container **slides in** and
+stacks on top (the header's `depth` becomes 1); the **browser back button**
+slides it back out, because the shell owns the whole tab and drives real
+browser history. (The slide is a native-style transition the shell applies on
+push/pop; it honors `prefers-reduced-motion`.)
+
+<MpaPreview example="vue-router-mpa" page="main" />
+
+You can also **scan the QR code** on any `<Go>` preview to run it in Lynx
+Explorer (with Sparkling integrated), where `router.open` runs natively.
+
+:::note Why the `<Go>` previews can't cross pages, but the web shell can
+In-heap navigation is pure Vue Router in the card's own JS heap — no native
+call — so it runs in any preview. Cross-page navigation calls `router.open`,
+which needs a native host. `sparkling-navigation` exposes a pluggable
+`RouterWebHost`, but go-web's `<Go>` preview doesn't yet expose a hook to
+register it (or the `spkPipe` bridge) on its `<lynx-view>`. The web shell owns
+its whole tab, so it installs that host and bridge itself — which is why
+cross-page navigation works there.
+:::
+
+## How it maps
+
+| Vue Router | Sparkling |
+|---|---|
+| route owned by the current bundle | in-heap transition (SPA) |
+| route owned by another bundle | `router.open(<scheme>)` — new container (MPA) |
+| `router.back()` past the local history | `router.close()` — pop the container |
+| `history.state` | carried across heaps inside the scheme URL |
+| history mode (`createWebHistory`/…) | replaced by `createHybridHistory` |
+
+For the complete traversal of Vue Router's feature set — what is supported,
+reframed, or limited under the MPA model — see the
+[compatibility matrix](https://github.com/tiktok/sparkling/blob/main/packages/sparkling-history/COMPATIBILITY.md).
