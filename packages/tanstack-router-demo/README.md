@@ -1,7 +1,7 @@
 # tanstack-router-demo
 
 TanStack Router driving **sparkling-navigation** for native multi-page (MPA)
-navigation, verified on the web harness.
+navigation, with in-page routing verified live in the go-web web preview.
 
 Unlike ReactLynx's existing SPA-in-a-single-LynxView story (TanStack/React
 Router over a memory history inside one JS context), here **each page is a
@@ -36,14 +36,24 @@ metadata (a route→page manifest), because they cannot share a JS heap.
 Path params (`id`) and search params (`ref`) cross the JS-context boundary via
 the sparkling scheme's query string and are read back from `queryItems`.
 
-## Running the web harness
+## Running the web preview
+
+The demo is surfaced on the website as a live [`<Go>`](https://github.com/lynx-community/go-web)
+example (see `docs/en/guide/examples/tanstack-router.mdx`). `build:web` emits
+`*.web.bundle` + `*.lynx.bundle` into `dist-web/`, which
+`packages/website/scripts/prepare-examples.mjs` copies into the site:
 
 ```bash
-pnpm --filter tanstack-router-demo build:web
-# serve the built bundles through the web shell:
-LYNX_BUNDLE_DIR="$(pwd)/dist/web" pnpm --filter sparkling-web-shell dev
-# open http://localhost:4200/?page=home
+pnpm --filter tanstack-router-demo build:web   # dist-web/*.{web,lynx}.bundle
+# then run the website and open /guide/examples/tanstack-router:
+pnpm --filter website dev
 ```
+
+**In-page** routing (the spike's Home↔About, the MPA `home` bundle's
+Home↔Profile) runs live in the browser preview — it uses TanStack Router's
+in-memory history, no native bridge. **Cross-page** navigation (opening a
+separate native page) needs a Sparkling container; use the QR-code tab to run
+on device.
 
 ## Required shims (ReactLynx has no react-dom / DOM)
 

@@ -63,6 +63,23 @@ const PACKAGE_SOURCES = [
     // Don't browse the native shells / generated dirs as source.
     skipDirs: ['android', 'ios', '.sparkling', 'coverage'],
   },
+  {
+    name: 'tanstack-router',
+    dir: path.resolve(REPO_ROOT, 'packages/tanstack-router-demo'),
+    // Emits *.web.bundle + *.lynx.bundle into dist-web/ (like the playground).
+    configFile: 'lynx.web.config.ts',
+    buildScript: 'build:web',
+    bundleDir: 'dist-web',
+    gitPath: 'packages/tanstack-router-demo',
+    // Entries are code-generated (spread from page-entries.gen.ts), so the
+    // config regex can't see them — list them explicitly. Only the entries
+    // that render meaningfully standalone in the web preview: `spike` (a
+    // single-page in-page-routing demo) and `home` (the MPA home bundle,
+    // whose Home<->Profile in-page nav runs live).
+    entries: ['spike', 'home'],
+    // Skip generated output and native dirs when browsing source.
+    skipDirs: ['pages.gen'],
+  },
 ]
 
 // Binary asset extensions that shouldn't be copied as browsable source.
@@ -179,6 +196,9 @@ function collectSources() {
       bundleDir: s.bundleDir ?? 'dist',
       gitBaseUrl: `${GIT_TREE}/${s.gitPath}`,
       includeEntries: s.includeEntries ?? null,
+      // Explicit entry list, for sources whose entries are code-generated and
+      // therefore invisible to the config regex.
+      entries: s.entries ?? null,
       skipSet: new Set([...SKIP_DIRS, ...(s.skipDirs ?? [])]),
     })
   }
@@ -213,8 +233,10 @@ function processSource(source) {
   const previewImage = allFiles.find(isPreviewImage) || undefined
 
   // Build `templateFiles`, mapping each (included) entry to its bundle outputs.
-  let entries = parseEntries(path.join(dir, source.configFile))
-  if (source.includeEntries) {
+  // Prefer an explicit entry list (for code-generated entries); otherwise read
+  // them from the config and optionally filter to `includeEntries`.
+  let entries = source.entries ?? parseEntries(path.join(dir, source.configFile))
+  if (!source.entries && source.includeEntries) {
     const wanted = new Set(source.includeEntries)
     entries = entries.filter((e) => wanted.has(e))
   }

@@ -1,0 +1,72 @@
+# TanStack Router
+
+[TanStack Router](https://tanstack.com/router) —— 一个完全类型安全的 Web 路由器
+—— 被移植到 Sparkling 之上，用于驱动**原生多页导航**。每个页面都是拥有独立 JS
+上下文的 LynxView；页面间跳转是一次原生容器 open，通过生成的 file-based 路由清单
+连接起来。
+
+完整的设计、功能支持矩阵，以及与 TanStack 官方 React Native 方案的对比，见
+[TanStack Router 指南](/guide/tanstack-router)。以下示例来自
+[`tanstack-router-demo`](https://github.com/tiktok/sparkling/tree/main/packages/tanstack-router-demo)
+包。
+
+:::tip Web 预览 vs. 真机
+**Web 预览**会在浏览器中实时运行路由器，所以下面每个按钮都会真正导航。**页内**
+导航（同一个 bundle 内的路由）使用 TanStack Router 的内存 history。**跨页**导航
+走 Sparkling 桥：在真机上每个页面都是*拥有独立 JS 上下文的独立原生 LynxView*，
+但 go-web 的 `<Go>` 卡片只渲染一个 bundle、无法切换到另一个，所以桥会把这次 open
+路由回本卡片，把目标路由**在页内**渲染出来（该 bundle 本身已携带完整路由树）。你
+依然能看到 path 与 search 参数通过 scheme 跨越边界 —— 扫描**二维码**标签页即可在
+真机上看到真正的原生页面切分。
+:::
+
+## ReactLynx 上的路由器（单页）
+
+可行性验证：TanStack Router 基于内存 history 运行在 ReactLynx 上。点击
+**→ go to /about** —— 这是一次实时的页内路由切换（含类型化 search 参数），不涉及
+任何原生桥。
+
+<Go
+  example="tanstack-router"
+  defaultEntryName="spike"
+  defaultFile="src/spike/index.tsx"
+  entry="src/spike"
+/>
+
+## 多页应用（MPA）
+
+多页 demo 的 `home` bundle。**Home ↔ Profile** 是一次页内切换（二者同属这一个
+bundle）。而 **Detail** 与 **Settings** 按钮会跨越原生页面边界：在真机上它们会打开
+*独立的原生 LynxView*，其 path/search 参数通过启动 scheme 抵达全新的 JS 上下文。
+在本 Web 预览里，这四个按钮都会实时导航 —— Sparkling 桥会把跨页目标在页内渲染出来
+（见上方提示），`location:` 一行会显示参数完成了这趟旅程。点击 **Detail #42 →**
+即可看到 `/detail/42?ref=home` 渲染出来，`id=42` 正是从 scheme 中重建的。
+
+切页动画是**容器**的职责，而非 app：在真机上，跨页 open 由原生容器完成动画
+（`sparkling-navigation` 的 `open`/`close` 上的 `animated` 标志）。go-web 的 Web
+预览把目标页在页内渲染，并不会复现容器动画，因此这里是瞬间切换 —— 扫描二维码即可
+在真机上看到原生切页动画。
+
+<Go
+  example="tanstack-router"
+  defaultEntryName="home"
+  defaultFile="src/routes/index.tsx"
+  entry="src/routes"
+/>
+
+## 实现方式
+
+在上面的嵌入组件中浏览源码。关键部分：
+
+- **`src/routes/*`** —— file-based 路由（`createFileRoute`），外加一个标记原生
+  页面边界的 `page` 导出（我们对约定的扩展）。
+- **`src/routeTree.gen.ts`** —— 由官方 `@tanstack/router-generator` 在 Rspeedy
+  构建过程中生成。
+- **`src/routes.manifest.ts`** + **`src/page-entries.gen.ts`** —— 由
+  `scripts/gen-mpa.mjs` 生成：路由→bundle 映射，以及每个原生页面一个入口。
+- **`src/mpa/create-router.tsx`** —— 通过可复用的
+  [`sparkling-history`](https://github.com/tiktok/sparkling/tree/main/packages/sparkling-history)
+  shim（`createMpaHistory` + `createSparklingHost`）把 `createRouter` 接到
+  `sparkling-navigation`。
+- **`src/shims/*`** —— 让 TanStack Router 能跑在 ReactLynx（无 `react-dom`、无
+  DOM）上的四个 bundler 层 shim。

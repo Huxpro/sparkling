@@ -41,17 +41,6 @@ export default defineConfig({
       bundle: '[name].lynx.bundle',
     },
   },
-  environments: {
-    web: {
-      output: {
-        assetPrefix: '/',
-        distPath: {
-          root: 'dist/web',
-        },
-      },
-    },
-    lynx: {},
-  },
   tools: {
     // Compose the OFFICIAL TanStack Router generator (generator-only mode, no
     // code-splitting) into the Rspeedy/Rspack build. It regenerates
