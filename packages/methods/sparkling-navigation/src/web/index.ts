@@ -8,6 +8,18 @@ import { registerWebMethod } from 'sparkling-method/web-registry';
 export interface RouterOpenOptions {
     /** Replace the current entry/container instead of stacking a new one. */
     replace?: boolean;
+    /**
+     * Whether the host should animate the transition (a full-page host like
+     * `sparkling-web-shell` can slide the new container in). Mirrors the native
+     * `OpenOptions.animated`. Undefined lets the host pick its default.
+     */
+    animated?: boolean;
+}
+
+/** Options forwarded from `router.close` to the {@link RouterWebHost}. */
+export interface RouterCloseOptions {
+    /** Whether the host should animate the pop. Mirrors `CloseOptions.animated`. */
+    animated?: boolean;
 }
 
 /**
@@ -19,7 +31,7 @@ export interface RouterOpenOptions {
  */
 export interface RouterWebHost {
     open(pageName: string, scheme: string, options?: RouterOpenOptions): void;
-    close(): void;
+    close(options?: RouterCloseOptions): void;
 }
 
 const defaultHost: RouterWebHost = {
@@ -36,6 +48,12 @@ const defaultHost: RouterWebHost = {
         window.history.back();
     },
 };
+
+/** Read an optional boolean field from the pipe `data` payload. */
+function readBool(data: unknown, key: string): boolean | undefined {
+    const value = (data as Record<string, unknown> | null | undefined)?.[key];
+    return typeof value === 'boolean' ? value : undefined;
+}
 
 let host: RouterWebHost = defaultHost;
 
@@ -79,16 +97,16 @@ registerWebMethod('router.open', (params, callback) => {
             return;
         }
         const replace = (params.data as Record<string, unknown>)?.replace === true;
-        host.open(pageName, scheme, { replace });
+        host.open(pageName, scheme, { replace, animated: readBool(params.data, 'animated') });
         callback({ code: 1, msg: 'ok' });
     } catch (e) {
         callback({ code: 0, msg: `Failed to parse scheme: ${e}` });
     }
 });
 
-registerWebMethod('router.close', (_params, callback) => {
+registerWebMethod('router.close', (params, callback) => {
     try {
-        host.close();
+        host.close({ animated: readBool(params.data, 'animated') });
         callback({ code: 1, msg: 'ok' });
     } catch (e) {
         callback({ code: 0, msg: `Failed to close: ${e}` });

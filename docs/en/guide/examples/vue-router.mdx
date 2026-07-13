@@ -59,9 +59,11 @@ cross-page navigation can't run in them. The demo below is different: it opens
 the **Sparkling web shell** in a new tab — the shell stacks a `<lynx-view>` per
 container, provides the `spkPipe` method bridge, and installs a
 `RouterWebHost`, so `router.open` actually opens a new container **in your
-browser**. Tap **push('/users')** and a second container stacks on top (the
-header's `depth` becomes 1); the **browser back button** pops it, because the
-shell owns the whole tab and drives real browser history.
+browser**. Tap **push('/users')** and a second container **slides in** and
+stacks on top (the header's `depth` becomes 1); the **browser back button**
+slides it back out, because the shell owns the whole tab and drives real
+browser history. (The slide is a native-style transition the shell applies on
+push/pop; it honors `prefers-reduced-motion`.)
 
 <MpaPreview example="vue-router-mpa" page="main" />
 

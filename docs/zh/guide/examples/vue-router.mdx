@@ -50,8 +50,9 @@ Sparkling 的其他网页预览只渲染 UI —— 其原生调用在浏览器�
 上方的 `<Go>` 预览一次只渲染一个 bundle、且没有原生桥，所以跨页导航跑不起来。下方这个 demo
 不同:它会在**新标签页**打开 **Sparkling web shell**——为每个容器堆叠一个 `<lynx-view>`、
 提供 `spkPipe` 方法桥、并安装 `RouterWebHost`——因此 `router.open` 会真的**在你的浏览器里**
-打开一个新容器。点击 **push('/users')**,第二个容器压栈(顶部 `depth` 变为 1),而**浏览器返回键**
-会弹出它——因为 shell 独占整个标签页,驱动的是真实的浏览器 history。
+打开一个新容器。点击 **push('/users')**,第二个容器会**滑入**并压栈(顶部 `depth` 变为 1),
+而**浏览器返回键**会把它滑出——因为 shell 独占整个标签页,驱动的是真实的浏览器 history。
+(这个滑动是 shell 在 push/pop 时施加的原生风格过渡,并会遵循 `prefers-reduced-motion`。)
 
 <MpaPreview example="vue-router-mpa" page="main" />
 

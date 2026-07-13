@@ -166,6 +166,67 @@ function sendViewEvent(entry: StackEntry | undefined, event: 'viewAppeared' | 'v
   entry?.view.sendGlobalEvent?.(event, []);
 }
 
+// ── Transitions ────────────────────────────────────────────────────────
+// Native-style push/pop: a new container slides in from the right; popping
+// slides the top container back out to the right, revealing the one beneath.
+
+const ANIM_MS = 280;
+// An iOS-like decelerating curve.
+const ANIM_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+}
+
+/** Whether a navigation with the given `animated` hint should animate. */
+function shouldAnimate(animated: boolean | undefined): boolean {
+  return animated !== false && !prefersReducedMotion();
+}
+
+/** Run a one-shot transform transition, then clean up and call `done`. */
+function transformTransition(
+  view: HTMLElement,
+  from: string,
+  to: string,
+  { reset }: { reset: boolean },
+  done: () => void,
+): void {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    view.removeEventListener('transitionend', onEnd);
+    view.style.transition = '';
+    // For a view that stays (push target), reset to its natural position; for a
+    // view about to be removed (pop), leave it off-screen to avoid a flash.
+    if (reset) view.style.transform = '';
+    done();
+  };
+  const onEnd = (event: TransitionEvent) => {
+    if (event.propertyName === 'transform') finish();
+  };
+
+  view.style.transition = 'none';
+  view.style.transform = from;
+  // Force a reflow so the `from` value is committed before we transition to `to`.
+  void view.getBoundingClientRect();
+  requestAnimationFrame(() => {
+    view.style.transition = `transform ${ANIM_MS}ms ${ANIM_EASE}`;
+    view.style.transform = to;
+  });
+  view.addEventListener('transitionend', onEnd);
+  // Safety net in case transitionend doesn't fire (e.g. view detached early).
+  window.setTimeout(finish, ANIM_MS + 120);
+}
+
+function animateIn(view: HTMLElement, done: () => void): void {
+  transformTransition(view, 'translateX(100%)', 'translateX(0)', { reset: true }, done);
+}
+
+function animateOut(view: HTMLElement, done: () => void): void {
+  transformTransition(view, 'translateX(0)', 'translateX(100%)', { reset: false }, done);
+}
+
 function createView(scheme: string): StackEntry | null {
   const container = rootElement();
   if (!container) {
@@ -205,38 +266,87 @@ function topEntry(): StackEntry | undefined {
   return viewStack[viewStack.length - 1];
 }
 
-function pushView(scheme: string): void {
+function pushView(scheme: string, animate = false): void {
   const previousTop = topEntry();
   const entry = createView(scheme);
   if (!entry) return;
-  if (previousTop) {
+  viewStack.push(entry);
+
+  const hidePrevious = () => {
+    if (!previousTop) return;
     previousTop.view.style.display = 'none';
     sendViewEvent(previousTop, 'viewDisappeared');
+  };
+
+  if (animate && previousTop) {
+    // Keep the previous container visible underneath while the new one slides
+    // in over it, then hide it once the new one covers the viewport.
+    animateIn(entry.view, hidePrevious);
+  } else {
+    hidePrevious();
   }
-  viewStack.push(entry);
 }
 
-function popViews(count: number): void {
-  for (let i = 0; i < count && viewStack.length > 0; i++) {
-    const entry = viewStack.pop()!;
+function popViews(count: number, animate = false): void {
+  const n = Math.min(count, viewStack.length);
+  if (n <= 0) return;
+
+  const topPopped = viewStack[viewStack.length - 1];
+  // Views popped beneath the top one are removed instantly (only the topmost
+  // one animates out).
+  const belowTop = viewStack.slice(viewStack.length - n, viewStack.length - 1);
+  const revealed = viewStack[viewStack.length - n - 1];
+  viewStack.length -= n;
+
+  for (const entry of belowTop) {
     sendViewEvent(entry, 'viewDisappeared');
     entry.view.remove();
   }
-  const revealed = topEntry();
-  if (revealed) {
-    revealed.view.style.display = '';
-    sendViewEvent(revealed, 'viewAppeared');
+  // Reveal the container beneath first, so it shows through as the top slides off.
+  if (revealed) revealed.view.style.display = '';
+
+  const finish = () => {
+    sendViewEvent(topPopped, 'viewDisappeared');
+    topPopped.view.remove();
+    if (revealed) sendViewEvent(revealed, 'viewAppeared');
+  };
+
+  if (animate && revealed) {
+    animateOut(topPopped.view, finish);
+  } else {
+    finish();
   }
 }
 
-function replaceTopView(scheme: string): void {
+function replaceTopView(scheme: string, animate = false): void {
   const previousTop = viewStack.pop();
-  if (previousTop) {
-    sendViewEvent(previousTop, 'viewDisappeared');
-    previousTop.view.remove();
-  }
   const entry = createView(scheme);
   if (entry) viewStack.push(entry);
+
+  const removePrevious = () => {
+    if (!previousTop) return;
+    sendViewEvent(previousTop, 'viewDisappeared');
+    previousTop.view.remove();
+  };
+
+  // Replace swaps the current container in place; a cross-fade reads better
+  // than a slide (which would imply stacking).
+  if (animate && previousTop && entry) {
+    entry.view.style.transition = 'none';
+    entry.view.style.opacity = '0';
+    void entry.view.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      entry.view.style.transition = `opacity ${ANIM_MS}ms ease`;
+      entry.view.style.opacity = '1';
+    });
+    window.setTimeout(() => {
+      entry.view.style.transition = '';
+      entry.view.style.opacity = '';
+      removePrevious();
+    }, ANIM_MS + 40);
+  } else {
+    removePrevious();
+  }
 }
 
 /** Rebuild the whole stack from schemes (initial load, reload, forward). */
@@ -284,7 +394,7 @@ function initialSchemeFromLocation(): string {
   return `hybrid://lynxview_page?bundle=${encodeURIComponent(`${page}.lynx.bundle`)}${extras ? `&${extras}` : ''}`;
 }
 
-function reconcileWithHistoryState(state: ShellHistoryState | null): void {
+function reconcileWithHistoryState(state: ShellHistoryState | null, animate = false): void {
   const target = state?.sparklingStack ?? [initialSchemeFromLocation()];
   const current = currentSchemes();
 
@@ -293,17 +403,29 @@ function reconcileWithHistoryState(state: ShellHistoryState | null): void {
 
   if (target.length < current.length && isPrefix(target, current)) {
     // back: pop views, previous containers stay alive → state preserved
-    popViews(current.length - target.length);
+    popViews(current.length - target.length, animate);
   } else if (target.length > current.length && isPrefix(current, target)) {
     // forward: re-create containers from schemes (fresh heaps)
     const previousTop = topEntry();
-    if (previousTop) {
+    const newSchemes = target.slice(current.length);
+    let last: StackEntry | undefined;
+    newSchemes.forEach((scheme, index) => {
+      const entry = createView(scheme);
+      if (!entry) return;
+      // only the last new container is the visible top
+      if (index !== newSchemes.length - 1) entry.view.style.display = 'none';
+      viewStack.push(entry);
+      last = entry;
+    });
+    const hidePrevious = () => {
+      if (!previousTop) return;
       previousTop.view.style.display = 'none';
       sendViewEvent(previousTop, 'viewDisappeared');
-    }
-    for (const scheme of target.slice(current.length)) {
-      const entry = createView(scheme);
-      if (entry) viewStack.push(entry);
+    };
+    if (animate && last && previousTop) {
+      animateIn(last.view, hidePrevious);
+    } else {
+      hidePrevious();
     }
   } else if (target.join('\n') !== current.join('\n')) {
     rebuildStack(target);
@@ -321,24 +443,26 @@ function reconcileWithHistoryState(state: ShellHistoryState | null): void {
 setRouterWebHost({
   open(_pageName, scheme, options) {
     const replace = options?.replace === true;
+    const animate = shouldAnimate(options?.animated);
     if (replace) {
-      replaceTopView(scheme);
+      replaceTopView(scheme, animate);
     } else {
-      pushView(scheme);
+      pushView(scheme, animate);
     }
     commitHistory(replace);
   },
   close() {
     // Going back through browser history keeps history and the view stack in
-    // sync (popstate below pops the revealed container).
+    // sync (popstate below pops the revealed container, with the pop animation).
     window.history.back();
   },
 });
 
+// Browser back/forward: animate by default (reduced-motion aware).
 window.addEventListener('popstate', (event) => {
-  reconcileWithHistoryState(event.state as ShellHistoryState | null);
+  reconcileWithHistoryState(event.state as ShellHistoryState | null, shouldAnimate(undefined));
 });
 
-// Initial render
-reconcileWithHistoryState(window.history.state as ShellHistoryState | null);
+// Initial render (no animation for the first paint).
+reconcileWithHistoryState(window.history.state as ShellHistoryState | null, false);
 commitHistory(true);
