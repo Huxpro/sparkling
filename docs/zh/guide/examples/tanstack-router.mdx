@@ -11,10 +11,13 @@
 包。
 
 :::tip Web 预览 vs. 真机
-**Web 预览**会在浏览器中实时运行路由器。**页内**导航（同一个 bundle 内的路由）
-使用 TanStack Router 的内存 history，所以在这里就能直接跑。**跨页**导航会通过
-Sparkling 桥打开一个*新的原生页面*，只能在 Sparkling 容器内运行 —— 请使用
-**二维码**标签页在真机上体验。
+**Web 预览**会在浏览器中实时运行路由器，所以下面每个按钮都会真正导航。**页内**
+导航（同一个 bundle 内的路由）使用 TanStack Router 的内存 history。**跨页**导航
+走 Sparkling 桥：在真机上每个页面都是*拥有独立 JS 上下文的独立原生 LynxView*，
+但 go-web 的 `<Go>` 卡片只渲染一个 bundle、无法切换到另一个，所以桥会把这次 open
+路由回本卡片，把目标路由**在页内**渲染出来（该 bundle 本身已携带完整路由树）。你
+依然能看到 path 与 search 参数通过 scheme 跨越边界 —— 扫描**二维码**标签页即可在
+真机上看到真正的原生页面切分。
 :::
 
 ## ReactLynx 上的路由器（单页）
@@ -33,9 +36,11 @@ Sparkling 桥打开一个*新的原生页面*，只能在 Sparkling 容器内运
 ## 多页应用（MPA）
 
 多页 demo 的 `home` bundle。**Home ↔ Profile** 是一次页内切换（二者同属这一个
-bundle），在预览里能实时运行。而 **Detail** 与 **Settings** 按钮会打开*独立的原生
-页面* —— 在 Web 预览里点击它们是无操作的，因为该路径需要原生容器；扫描二维码即可
-看到跨页导航，以及 path/search 参数跨越 JS 上下文边界的过程。
+bundle）。而 **Detail** 与 **Settings** 按钮会跨越原生页面边界：在真机上它们会打开
+*独立的原生 LynxView*，其 path/search 参数通过启动 scheme 抵达全新的 JS 上下文。
+在本 Web 预览里，这四个按钮都会实时导航 —— Sparkling 桥会把跨页目标在页内渲染出来
+（见上方提示），`location:` 一行会显示参数完成了这趟旅程。点击 **Detail #42 →**
+即可看到 `/detail/42?ref=home` 渲染出来，`id=42` 正是从 scheme 中重建的。
 
 <Go
   example="tanstack-router"

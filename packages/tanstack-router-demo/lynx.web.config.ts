@@ -28,6 +28,14 @@ export default defineConfig({
       home: './src/pages.gen/home/index.tsx',
     },
   },
+  resolve: {
+    ...baseConfig.resolve,
+    // Prefer `*.web.ts(x)` variants in this (web) build — the React-Native-style
+    // platform-extension pattern. This is how `src/web-nav/setup.ts` (native
+    // no-op) is swapped for `src/web-nav/setup.web.ts` (registers the sparkling
+    // web methods and drives navigation in-page within the go-web card).
+    extensions: ['.web.ts', '.web.tsx', '.ts', '.tsx', '.js', '.jsx', '.json'],
+  },
   // Drop the base config's `tools.rspack` (the @tanstack/router-plugin
   // generator). This build is run on the website deploy (Vercel), where we want
   // the exact same lean pipeline the playground uses — plain rspeedy +

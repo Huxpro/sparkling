@@ -11,11 +11,15 @@ These demos come from the [`tanstack-router-demo`](https://github.com/tiktok/spa
 package.
 
 :::tip Web preview vs. on device
-The **web preview** runs the router live in your browser. **In-page** navigation
-(routes within one bundle) uses TanStack Router's in-memory history, so it works
-right here. **Cross-page** navigation opens a *new native page* through the
-Sparkling bridge, which only runs inside a Sparkling container — use the **QR
-code** tab to see it on device.
+The **web preview** runs the router live in your browser, so every button below
+navigates for real. **In-page** navigation (routes within one bundle) uses
+TanStack Router's in-memory history. **Cross-page** navigation goes through the
+Sparkling bridge: on a real device each page is a *separate native LynxView with
+its own JS context*, but a go-web `<Go>` card renders a single bundle and can't
+swap to another, so the bridge routes the open back into this card and renders
+the destination route **in-page** (the bundle already carries the whole route
+tree). You still see the path and search params cross the boundary via the
+scheme — scan the **QR code** tab to see the true native page split on device.
 :::
 
 ## Router on ReactLynx (single page)
@@ -34,11 +38,13 @@ search params included), no native bridge involved.
 ## Multi-page app (MPA)
 
 The `home` bundle of the multi-page demo. **Home ↔ Profile** is an in-page
-transition (both live in this one bundle) and runs live in the preview. The
-**Detail** and **Settings** buttons open *separate native pages* — tapping them
-in the web preview is a no-op because that path needs the native container; scan
-the QR code to see the cross-page navigation and the path/search params crossing
-the JS-context boundary.
+transition (both live in this one bundle). The **Detail** and **Settings**
+buttons cross a native-page boundary: on device they open *separate native
+LynxViews*, and their path/search params arrive in the fresh JS context via the
+launch scheme. In this web preview all four navigate live — the Sparkling bridge
+renders the cross-page destinations in-page here (see the tip above), and the
+`location:` line shows the params making the trip. Tap **Detail #42 →** to watch
+`/detail/42?ref=home` render with `id=42` reconstructed from the scheme.
 
 <Go
   example="tanstack-router"
