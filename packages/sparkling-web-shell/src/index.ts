@@ -114,12 +114,23 @@ function toWebBundle(bundlePath: string): string {
   return bundlePath.replace(/\.lynx\.bundle$/, '.web.bundle');
 }
 
+/**
+ * Base URL the page bundles are served from. Defaults to the shell's own
+ * origin root (`/`, used by `rsbuild dev` with LYNX_BUNDLE_DIR). When the shell
+ * is embedded elsewhere — e.g. an `<iframe>` on the docs site — the host passes
+ * `?base=<url>` so bundles load from the example's deployed `dist/` instead.
+ */
+const BUNDLE_BASE = (() => {
+  const base = new URLSearchParams(window.location.search).get('base') || '';
+  return base.replace(/\/+$/, '');
+})();
+
 function bundleUrlOf(scheme: string): string | null {
   const query = parseSchemeQuery(scheme);
   if (query.url) return toWebBundle(query.url);
   if (query.bundle) {
     const name = query.bundle.split('/').filter(Boolean).pop() ?? query.bundle;
-    return `/${toWebBundle(name)}`;
+    return `${BUNDLE_BASE}/${toWebBundle(name)}`;
   }
   return null;
 }
@@ -265,7 +276,10 @@ function commitHistory(replace: boolean): void {
 function initialSchemeFromLocation(): string {
   const params = new URLSearchParams(window.location.search);
   const page = params.get('page') || 'main';
+  // `page` selects the entry; `base` configures the shell — neither is a route
+  // param, so keep them out of the scheme's query.
   params.delete('page');
+  params.delete('base');
   const extras = params.toString();
   return `hybrid://lynxview_page?bundle=${encodeURIComponent(`${page}.lynx.bundle`)}${extras ? `&${extras}` : ''}`;
 }

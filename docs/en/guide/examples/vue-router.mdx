@@ -47,33 +47,35 @@ router. This preview boots at the bundle's own default route (`/users`).
   defaultFile="src/pages/users/views/UserList.vue"
 />
 
-## Cross-page navigation (MPA — use the QR / device tab)
+## Cross-page navigation (MPA — live demo)
 
 When `router.push` resolves to a route owned by **another** bundle (per the
 route manifest), the shim diverts it to `router.open`, which stacks a **new
 native container**. The previous page stays alive underneath, exactly like a
 native navigation stack.
 
-The `<Go>` web preview renders one bundle at a time and does not provide
-Sparkling's native method bridge (the `spkPipe` module), so `router.open`
-has nowhere to go. Tapping a cross-page button in the preview above therefore
-shows an inline notice ("native navigation unavailable here — open on device")
-instead of navigating. To exercise the full flow:
+The `<Go>` previews above render one bundle at a time with no native bridge, so
+cross-page navigation can't run in them. The demo below is different: it opens
+the **Sparkling web shell** in a new tab — the shell stacks a `<lynx-view>` per
+container, provides the `spkPipe` method bridge, and installs a
+`RouterWebHost`, so `router.open` actually opens a new container **in your
+browser**. Tap **push('/users')** and a second container stacks on top (the
+header's `depth` becomes 1); the **browser back button** pops it, because the
+shell owns the whole tab and drives real browser history.
 
-- **Scan the QR code** and open it in Lynx Explorer (with Sparkling
-  integrated), where `router.open` runs natively; or
-- run the local **web-shell harness**, which provides the method bridge and
-  faithfully simulates the native container stack in a browser — see the
-  [example README](https://github.com/tiktok/sparkling/tree/main/examples/vue-router-mpa#run-the-full-flow-on-the-local-web-shell-harness).
+<MpaPreview example="vue-router-mpa" page="main" />
 
-:::note Why in-heap works but cross-page doesn't
-In-heap navigation is pure Vue Router running in the card's own JS heap — no
-native call — so it works in the preview. Cross-page navigation calls
-`router.open`, which needs a native host. `sparkling-navigation` exposes a
-pluggable `RouterWebHost` for embedders to supply one, but go-web's preview
-doesn't currently expose a hook to register it (or the `spkPipe` bridge) on
-its `<lynx-view>`. The web-shell, which owns the whole page, installs that host
-and bridge itself.
+You can also **scan the QR code** on any `<Go>` preview to run it in Lynx
+Explorer (with Sparkling integrated), where `router.open` runs natively.
+
+:::note Why the `<Go>` previews can't cross pages, but the web shell can
+In-heap navigation is pure Vue Router in the card's own JS heap — no native
+call — so it runs in any preview. Cross-page navigation calls `router.open`,
+which needs a native host. `sparkling-navigation` exposes a pluggable
+`RouterWebHost`, but go-web's `<Go>` preview doesn't yet expose a hook to
+register it (or the `spkPipe` bridge) on its `<lynx-view>`. The web shell owns
+its whole tab, so it installs that host and bridge itself — which is why
+cross-page navigation works there.
 :::
 
 ## How it maps

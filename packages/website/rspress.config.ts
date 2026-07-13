@@ -238,9 +238,12 @@ export default defineConfig({
     link: {
       checkDeadLinks: false,
     },
-    // Register <Go> globally so example docs can embed live Lynx previews
-    // without importing the component in every MDX file.
-    globalComponents: [path.resolve(__dirname, 'src/components/go/Go.tsx')],
+    // Register <Go> and <MpaPreview> globally so example docs can embed live
+    // Lynx previews without importing the components in every MDX file.
+    globalComponents: [
+      path.resolve(__dirname, 'src/components/go/Go.tsx'),
+      path.resolve(__dirname, 'src/components/mpa-preview/MpaPreview.tsx'),
+    ],
   },
   title: 'Sparkling',
   description:
