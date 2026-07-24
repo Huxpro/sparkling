@@ -61,12 +61,24 @@ export interface SparklingHostOptions {
   bundleForPage?: (pageId: string) => string;
   /**
    * Whether native page opens/closes animate. Passed straight through to
-   * sparkling-navigation's `animated` option, so the *native container* runs
-   * its own push/pop transition — page-transition animation is a container
-   * concern, not something the app renders. Defaults to `true`. A per-call
-   * `close({ animated })` still overrides this for that pop.
+   * sparkling-navigation's `animated` option — page-transition animation is
+   * a container concern, not something the app renders. Defaults to `true`.
+   * A per-call `close({ animated })` still overrides this for that pop.
+   *
+   * NOTE (pending native support): today's sparkling SDK does not honor this
+   * flag yet — iOS hardcodes animated pushes/pops and Android ignores the
+   * option — so `animated: false` currently has no effect on device. The
+   * option is plumbed through so behavior lights up when the SDK does.
    */
   animated?: boolean;
+  /**
+   * Fallback initial href when the launch query carries no `hrefParam`
+   * (external deep links open a bundle directly, without the MPA transport
+   * params). Pass the default route of the page this bundle serves —
+   * falling back to `'/'` in a non-root bundle would render the root page's
+   * UI inside the wrong container. Defaults to `'/'`.
+   */
+  defaultHref?: string;
 }
 
 const DEFAULT_HREF_PARAM = '__mpa_href';
@@ -102,30 +114,35 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
     baseScheme = DEFAULT_BASE_SCHEME,
     bundleForPage = defaultBundleForPage,
     animated = true,
+    defaultHref = '/',
   } = options;
 
   const query = () => getQueryItems?.() ?? {};
 
+  // Built by hand instead of `new URL()`: the native Lynx JS runtime has no
+  // URL/URLSearchParams globals, and this is the hot path of every cross-page
+  // navigation. encodeURIComponent also encodes spaces as %20 (never +),
+  // which is what sparkling's native scheme parser expects.
   function buildScheme(target: HostOpenTarget, depth: number): string {
-    const bundle = bundleForPage(target.page.id);
-    const url = new URL(baseScheme);
-    url.searchParams.set('bundle', bundle);
+    const pairs: Array<[string, string]> = [['bundle', bundleForPage(target.page.id)]];
 
     // Static container config resolved before the page boots.
     for (const [key, value] of Object.entries(target.page.containerParams ?? {})) {
-      url.searchParams.set(key, value);
+      pairs.push([key, value]);
     }
 
     // MPA transport params: the destination router reconstructs its initial
     // location from these.
-    url.searchParams.set(hrefParam, target.href);
-    url.searchParams.set(depthParam, String(depth));
+    pairs.push([hrefParam, target.href]);
+    pairs.push([depthParam, String(depth)]);
     if (target.state !== undefined) {
-      url.searchParams.set(stateParam, JSON.stringify(target.state));
+      pairs.push([stateParam, JSON.stringify(target.state)]);
     }
 
-    // sparkling's native URL parser wants %20, not + for spaces.
-    return url.toString().replace(/\+/g, '%20');
+    const qs = pairs
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    return `${baseScheme}${baseScheme.includes('?') ? '&' : '?'}${qs}`;
   }
 
   return {
@@ -133,8 +150,11 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
       const q = query();
       const href = q[hrefParam];
       if (typeof href === 'string' && href.length > 0) return href;
-      // Fall back to '/', the router's root.
-      return '/';
+      // No transport param — this bundle was opened by an external deep link
+      // (scheme without `hrefParam`). Fall back to the page's own default
+      // route, not the app root: every bundle carries the full route tree, so
+      // '/' here would render the root page's UI inside this container.
+      return defaultHref;
     },
 
     getStackDepth() {
@@ -167,11 +187,18 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
     },
 
     close(opts?: HostCloseOptions): Promise<HostNavigationResult> {
+      // NOTE: `opts.result` has no native transport yet — sparkling's
+      // router.close carries no payload and the SDK broadcasts no stack
+      // events, so pop results are currently dropped on this host. The
+      // memory host specifies the intended behavior; this lights up when
+      // the native stack protocol grows its event face.
       return new Promise((resolve) => {
         navigation.close({ animated: opts?.animated ?? animated }, (result) =>
           resolve({ ok: result.code === 1, message: result.msg }),
         );
       });
     },
+    // No subscribeStack: the native SDK is command-only today. Deliberately
+    // omitted (rather than stubbed) so consumers can feature-detect.
   };
 }

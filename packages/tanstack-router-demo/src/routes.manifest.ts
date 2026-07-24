@@ -11,14 +11,16 @@ export const manifest: PageManifest = {
       ],
       "containerParams": {
         "title": "Detail"
-      }
+      },
+      "defaultHref": "/detail"
     },
     {
       "id": "home",
       "paths": [
         "/",
         "/profile"
-      ]
+      ],
+      "defaultHref": "/"
     },
     {
       "id": "settings",
@@ -27,7 +29,8 @@ export const manifest: PageManifest = {
       ],
       "containerParams": {
         "title": "Settings"
-      }
+      },
+      "defaultHref": "/settings"
     }
   ]
 };

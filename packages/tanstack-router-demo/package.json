@@ -11,7 +11,7 @@
   },
   "scripts": {
     "codegen": "node scripts/codegen.mjs",
-    "build": "pnpm codegen && rspeedy build",
+    "build": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-history build && pnpm codegen && rspeedy build",
     "build:web": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-history build && rspeedy build --config lynx.web.config.ts",
     "dev": "pnpm codegen && rspeedy dev",
     "pretest": "pnpm codegen",
@@ -22,15 +22,16 @@
     "@tanstack/react-router": "1.170.17",
     "sparkling-history": "workspace:*",
     "sparkling-method": "workspace:*",
-    "sparkling-navigation": "workspace:*"
+    "sparkling-navigation": "workspace:*",
+    "url-search-params-polyfill": "^8.2.5"
   },
   "devDependencies": {
     "@lynx-js/react-rsbuild-plugin": "^0.12.7",
     "@lynx-js/rspeedy": "^0.13.3",
     "@lynx-js/types": "^3.7.0",
     "@lynx-js/use-sync-external-store": "^1.5.0",
-    "@tanstack/router-generator": "^1.167.18",
-    "@tanstack/router-plugin": "^1.168.19",
+    "@tanstack/router-generator": "1.167.18",
+    "@tanstack/router-plugin": "1.168.19",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },

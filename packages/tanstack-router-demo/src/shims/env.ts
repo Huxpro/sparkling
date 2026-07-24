@@ -1,11 +1,18 @@
 // Minimal global-environment polyfills for running TanStack Router in a
 // Lynx JS context (no window/document).
 //
+// - URLSearchParams: @tanstack/react-router parses/serializes search params
+//   with it; the native Lynx runtime (PrimJS) does not provide it. This is
+//   the polyfill the official Lynx TanStack guide mandates. (Node and
+//   browsers have it natively, which is exactly why its absence only shows
+//   up on device — never in vitest or the go-web preview.)
 // - scrollTo: router-core's reset-scroll-on-navigation subscription calls the
 //   bare `scrollTo(...)` global even when scrollRestoration is disabled.
 //   Scrolling is a per-element concern on Lynx, so a no-op is correct.
 // - queueMicrotask / AbortController: guaranteed in web workers (the web
 //   harness) but not in every native Lynx JS runtime; provide fallbacks.
+import 'url-search-params-polyfill';
+
 const g = globalThis as Record<string, unknown>;
 
 if (typeof g.scrollTo !== 'function') {

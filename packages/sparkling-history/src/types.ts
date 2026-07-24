@@ -85,6 +85,13 @@ export interface MpaHistory {
   destroy: () => void;
   notify: (action: SubscriberHistoryAction) => void;
   _ignoreSubscribers?: boolean;
+  /**
+   * Close this page's native container, optionally handing a result back to
+   * the page below (see {@link HostCloseOptions}). Unlike `back()`, this
+   * always pops the *container* — the local in-page stack is irrelevant.
+   * Extension beyond the `RouterHistory` shape; safe structurally.
+   */
+  closePage: (opts?: HostCloseOptions, navigateOpts?: NavigateOptions) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,12 +129,56 @@ export interface HostOpenTarget {
 
 export interface HostCloseOptions {
   animated?: boolean;
+  /**
+   * JSON-serializable result handed back to the page below when this page
+   * pops (the MPA analogue of `setResult`/`onActivityResult`). Delivered to
+   * subscribers as the `result` of the corresponding `pop` stack event.
+   * Requires a host with an event face; hosts without one ignore it.
+   */
+  result?: unknown;
 }
 
 export interface HostNavigationResult {
   ok: boolean;
   message?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Stack events — the host's event face
+// ---------------------------------------------------------------------------
+
+/** Why the native stack changed. */
+export type StackChangeReason =
+  /** A page was pushed (JS-initiated open). */
+  | 'push'
+  /** A page popped via a JS-initiated close. */
+  | 'pop'
+  /** The current page was replaced. */
+  | 'replace'
+  /**
+   * The container popped a page on its own — hardware back, edge gesture,
+   * nav-bar back button. JS is informed after the fact and must converge;
+   * blockers cannot intercept this.
+   */
+  | 'container-back'
+  /** The stack changed for a reason outside this app's control (deep link, system). */
+  | 'external';
+
+export interface StackChangedEvent {
+  reason: StackChangeReason;
+  /** Native stack depth after the change (0 = only the root page remains). */
+  depth: number;
+  /** Result carried by a `pop`/`container-back`, if the closing page set one. */
+  result?: unknown;
+}
+
+/**
+ * The optional event face of a {@link NavigationHost}. Command-only hosts
+ * (today's sparkling binding — the native SDK does not broadcast stack
+ * changes yet) simply omit `subscribeStack`; consumers must treat the
+ * subscription as best-effort.
+ */
+export type StackSubscriber = (event: StackChangedEvent) => void;
 
 /**
  * The contract between the history shim and a native multi-page container.
@@ -151,6 +202,11 @@ export interface NavigationHost {
   open(target: HostOpenTarget): void | Promise<HostNavigationResult>;
   /** Ask the container to close/pop the current page. */
   close(opts?: HostCloseOptions): void | Promise<HostNavigationResult>;
+  /**
+   * Subscribe to native stack changes (see {@link StackChangedEvent}).
+   * Optional: command-only hosts omit it. Returns an unsubscribe function.
+   */
+  subscribeStack?(subscriber: StackSubscriber): () => void;
 }
 
 // ---------------------------------------------------------------------------

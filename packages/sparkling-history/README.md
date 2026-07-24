@@ -77,3 +77,22 @@ execution on `typeof document !== 'undefined'`).
 `pnpm --filter sparkling-history test` — 28 tests: in-page parity with
 `@tanstack/history`'s memory history (ported verbatim), MPA boundary behavior,
 and sparkling scheme round-tripping, all in a plain node environment.
+
+## Stack events & results (host event face)
+
+`NavigationHost` has an optional event face for the full "JS drives native
+containers" protocol:
+
+- `host.subscribeStack(cb)` — observe native stack changes
+  (`push` / `pop` / `replace` / `container-back`), each carrying the new
+  depth and an optional pop `result`.
+- `history.closePage({ result })` — close this page's container and hand a
+  result to the page below (the MPA analogue of `setResult`).
+- `createStackMirror(host)` — a read-only, `useSyncExternalStore`-compatible
+  snapshot of the native stack; `mirror.live` tells you whether the host
+  actually broadcasts events.
+
+The **memory host implements the whole protocol** and serves as its
+executable specification (`tests/stack-events.test.ts`). The **sparkling
+binding is command-only for now** — the native SDK does not broadcast stack
+changes or transport close payloads yet — so feature-detect and degrade.

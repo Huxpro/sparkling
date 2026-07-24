@@ -18,10 +18,16 @@ export { createMpaHistory } from './create-mpa-history.js';
 export { parseHref, sanitizePath, assignKeyAndIndex, createRandomKey } from './parse-href.js';
 export {
   createManifestPageResolver,
+  defaultHrefForPage,
   type PageManifest,
   type PageManifestEntry,
 } from './resolve-page.js';
 export { createMemoryHost, type MemoryHost, type MemoryHostOptions } from './hosts/memory.js';
+export {
+  createStackMirror,
+  type StackMirror,
+  type StackMirrorSnapshot,
+} from './stack-mirror.js';
 
 export type {
   HistoryLocation,
@@ -41,4 +47,7 @@ export type {
   HostCloseOptions,
   HostNavigationResult,
   CreateMpaHistoryOptions,
+  StackChangeReason,
+  StackChangedEvent,
+  StackSubscriber,
 } from './types.js';

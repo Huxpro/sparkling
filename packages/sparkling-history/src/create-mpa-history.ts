@@ -167,6 +167,11 @@ export function createMpaHistory(options: CreateMpaHistoryOptions): MpaHistory {
         notify({ type: 'BACK' });
       });
     },
+    closePage(opts, navigateOpts) {
+      void tryNavigation({ type: 'BACK' }, navigateOpts, () => {
+        callHost(() => host.close(opts));
+      });
+    },
     forward(navigateOpts) {
       void tryNavigation({ type: 'FORWARD' }, navigateOpts, () => {
         // Clamp to the local top; there is no native forward stack.

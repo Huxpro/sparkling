@@ -5,6 +5,7 @@ import { createRouter } from '@tanstack/react-router';
 import {
   createMpaHistory,
   createManifestPageResolver,
+  defaultHrefForPage,
 } from 'sparkling-history';
 import { createSparklingHost } from 'sparkling-history/sparkling';
 import * as navigation from 'sparkling-navigation';
@@ -50,10 +51,13 @@ function LynxErrorComponent({ error }: { error: Error }) {
  * shim. Cross-page navigations become native page opens; in-page navigations
  * stay within this bundle.
  */
-export function createMpaRouter() {
+export function createMpaRouter(opts?: { pageId?: string }) {
   const host = createSparklingHost({
     navigation: navigation as never,
     getQueryItems: readQueryItems,
+    // External deep links open this bundle without `__mpa_href`; render this
+    // page's own default route, not the app root.
+    defaultHref: opts?.pageId ? defaultHrefForPage(manifest, opts.pageId) : '/',
   });
 
   // In the go-web `<Go>` preview, the sparkling web bridge routes a cross-page

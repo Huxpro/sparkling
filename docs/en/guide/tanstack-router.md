@@ -111,8 +111,21 @@ hybrid://lynxview_page?bundle=detail.lynx.bundle
 
 and reconstructs the destination page's **initial location** from its launch
 `queryItems`. `options.replace` maps to Sparkling's `open` + `replace`
-semantics; `close()` maps to `router.close`. Spaces are encoded as `%20`
-(native URL parsers reject `+`).
+semantics; `close()` maps to `router.close`. The scheme is assembled with
+plain string building (`encodeURIComponent`, spaces as `%20` — native URL
+parsers reject `+`): the native Lynx runtime has **no `URL`/`URLSearchParams`
+globals**, so the host must not depend on them.
+
+**Deep links**: when a bundle is opened externally (a scheme without
+`__mpa_href`), the host falls back to the page's own default route
+(`defaultHref`, derived from the manifest via `defaultHrefForPage`) — never
+to `/`, which would render the root page's UI inside the wrong container.
+
+**Note on bundle size (demo simplification)**: every page bundle currently
+carries the *full* route tree — the generator emits per-page entries but does
+not yet prune each page's subtree, so bundle size grows linearly with page
+count. Subtree splitting per page boundary is the next step for the MPA
+codegen, not a property of the design.
 
 ### File-based route manifest
 
@@ -272,9 +285,18 @@ contexts, and are the fundamental difference from the SPA model:
 - **The back stack is native-owned.** JS cannot read it, cannot `go(-3)` across
   pages (only one native `close` per `back`), and cannot block a
   hardware/gesture back — only JS-initiated navigation is blockable.
-- **No return value to the opener via navigation.** `close` does not deliver a
-  result to the reopened page through the navigation API; the previous page
-  only learns it reappeared via the `viewAppeared` lifecycle event.
+- **Return values and stack observation need a native event face.** The
+  `NavigationHost` contract now specifies one — `history.closePage({ result })`
+  hands a result to the page below, `host.subscribeStack` broadcasts
+  `StackChangedEvent`s (push/pop/replace/`container-back`, with depth and
+  result), and `createStackMirror(host)` exposes a read-only, subscribable
+  snapshot of the native stack. The **memory host implements the full
+  protocol** (it is the executable spec, covered by `stack-events.test.ts`);
+  the **sparkling binding is command-only today** because the native SDK
+  neither broadcasts stack changes nor carries a close payload. Consumers
+  must feature-detect via `mirror.live` / the absence of `subscribeStack` and
+  degrade. Growing this event face in the native SDK (a container registry +
+  a global stack-changed event) is the key next step for the platform.
 
 ## Running TanStack Router on ReactLynx: the shims
 
@@ -292,9 +314,13 @@ place (see `packages/tanstack-router-demo/lynx.config.ts` and `src/shims/`) —
    to flip transition state synchronously).
 3. **`use-sync-external-store/shim*`** → `@lynx-js/use-sync-external-store`
    (Lynx's build of the store subscription primitive).
-4. **`env.ts` globals** — `scrollTo` (router-core resets scroll on every
-   navigation even with `scrollRestoration` off), plus `AbortController` /
-   `queueMicrotask` fallbacks for runtimes that lack them.
+4. **`env.ts` globals** — `url-search-params-polyfill` (**required**:
+   TanStack Router parses/serializes search params with `URLSearchParams`,
+   which the native Lynx runtime does not provide — Node tests and browser
+   previews have it natively, so its absence only surfaces on device),
+   `scrollTo` (router-core resets scroll on every navigation even with
+   `scrollRestoration` off), plus `AbortController` / `queueMicrotask`
+   fallbacks for runtimes that lack them.
 
 Two router options are also required:
 

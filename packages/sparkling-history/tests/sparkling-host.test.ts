@@ -142,3 +142,50 @@ describe('createSparklingHost', () => {
     expect(onHostError).toHaveBeenCalled();
   });
 });
+
+describe('native-runtime safety and deep links', () => {
+  test('open works without a global URL (PrimJS has none)', () => {
+    const navigation = fakeNavigation();
+    const host = createSparklingHost({ navigation, getQueryItems: () => ({}) });
+    vi.stubGlobal('URL', undefined);
+    vi.stubGlobal('URLSearchParams', undefined);
+    try {
+      void host.open({
+        href: '/detail/1?q=a b',
+        page: { id: 'detail', containerParams: { title: 'A B' } },
+        replace: false,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    const scheme = navigation.openCalls[0]!.scheme;
+    expect(scheme.startsWith('hybrid://lynxview_page?bundle=detail.lynx.bundle')).toBe(true);
+    expect(scheme).toContain('title=A%20B');
+    expect(scheme).toContain('__mpa_href=%2Fdetail%2F1%3Fq%3Da%20b');
+    expect(scheme).not.toContain('+');
+  });
+
+  test('deep link without transport params falls back to the page default, not "/"', () => {
+    const navigation = fakeNavigation();
+    const host = createSparklingHost({
+      navigation,
+      getQueryItems: () => ({}), // external deep link: no __mpa_href
+      defaultHref: '/detail',
+    });
+    expect(host.getInitialHref()).toBe('/detail');
+  });
+
+  test('defaultHrefForPage prefers explicit defaultHref, then shortest prefix', async () => {
+    const { defaultHrefForPage } = await import('../src/resolve-page.js');
+    expect(
+      defaultHrefForPage(
+        { pages: [{ id: 'detail', paths: ['/detail'], defaultHref: '/detail' }] },
+        'detail',
+      ),
+    ).toBe('/detail');
+    expect(
+      defaultHrefForPage({ pages: [{ id: 'x', paths: ['/x/y', '/x'] }] }, 'x'),
+    ).toBe('/x');
+    expect(defaultHrefForPage({ pages: [] }, 'missing')).toBe('/');
+  });
+});
