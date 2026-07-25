@@ -428,16 +428,56 @@ navigation; ours optimizes for native-owned, isolated page containers. The
 `sparkling-history` layer is what makes the router core reusable in the MPA
 world their adapter does not target.
 
+## Second authoring frontend: the Next-style app directory
+
+The runtime consumes exactly three inputs — a route tree, a page manifest, and
+the booting page's id. Nothing in it knows which file convention produced the
+first two. That makes authoring a *frontend* concern: a translator from a file
+convention to the artifact pair. The demo ships two:
+
+| | TanStack convention | Next-style convention |
+|---|---|---|
+| Source | `src/routes/*` (flat files) | `src/app/**` (`page.tsx`, `layout.tsx`, `[param]/`) |
+| Route component | `createFileRoute(...)({ component })` | `export default` |
+| Page boundary | `export const page = {...}` | `export const container = {...}` |
+| Extra route options | inline in `createFileRoute` | `export const routeOptions = {...}` |
+| Translator | official generator + `gen-mpa.mjs` | `gen-next.mjs` |
+| Artifacts | `routeTree.gen.ts` + `routes.manifest.ts` | `routeTree.next.gen.ts` + `routes-next.manifest.ts` |
+
+`gen-next.mjs` walks the app directory, emits thin *bridge* route files
+(TanStack flat convention, re-exporting the app components and translating
+`container` → `page`), runs the **official** TanStack generator over them, and
+compiles the manifest with the same shared compiler (`lib/page-manifest.mjs`)
+the TanStack frontend uses. `routeOptions` (e.g. `validateSearch`) spreads
+through as code, since functions cannot be compiled into a data manifest.
+
+`tests/next-parity.test.ts` pins the equivalence: identical route-id sets,
+deep-equal manifests, and the same cross-page/in-page navigation behavior over
+the same runtime — which is parameterized only in the sense that
+`mount({ pageId, routeTree, manifest })` now takes the artifact pair
+explicitly (defaulting to the TanStack ones); no runtime logic changed.
+
+Both frontends build side by side here (`next-*` bundles) purely for the demo;
+a real app would pick one convention and ship it unprefixed. The Next-style
+surface is convention-compatible, not Next-compatible: server components, data
+fetching, and the rest of Next's runtime semantics are out of scope — this
+proves the *authoring* dimension is pluggable, nothing more.
+
 ## Packages & files
 
 - `packages/sparkling-history` — the reusable shim (contract + history +
-  sparkling host + manifest resolver). 28 tests.
+  sparkling host + manifest resolver + stack mirror). 39 tests.
 - `packages/tanstack-router-demo` — the spike, the file-based multi-page MPA
-  demo, and the headless tests (16: feature matrix + generated-tree).
+  demo (two authoring frontends), and the headless tests (22: feature matrix +
+  generated-tree + next-parity).
   - `src/routes/*` — file-based routes (official convention + `page` markers).
-  - `scripts/codegen.mjs` — runs the official generator + `gen-mpa.mjs`.
-  - `scripts/gen-mpa.mjs` — MPA manifest + per-page entries codegen.
+  - `src/app/**` — the same app authored Next-style (`container` markers).
+  - `scripts/codegen.mjs` — runs the official generator + `gen-mpa.mjs` +
+    `gen-next.mjs`.
+  - `scripts/gen-mpa.mjs` / `scripts/gen-next.mjs` — the two frontend
+    translators; `scripts/lib/page-manifest.mjs` — shared manifest compiler.
   - `src/routeTree.gen.ts` (official generator), `src/routes.manifest.ts` +
-    `src/page-entries.gen.ts` + `src/pages.gen/*` (MPA codegen).
+    `src/page-entries.gen.ts` + `src/pages.gen/*` (MPA codegen), and their
+    `*.next.*` counterparts from the Next-style translator.
 - Website embed: `docs/en/guide/examples/tanstack-router.mdx` (the live `<Go>`
   example), registered in `packages/website/scripts/prepare-examples.mjs`.

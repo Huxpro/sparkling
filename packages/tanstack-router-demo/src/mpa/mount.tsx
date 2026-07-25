@@ -11,9 +11,10 @@ import { createMpaRouter } from './create-router.js';
  * location from the launch queryItems (`__mpa_href`), so the same code renders
  * Home in the home bundle and Detail in the detail bundle. `pageId` names the
  * page this bundle serves — external deep links (no `__mpa_href`) fall back to
- * that page's default route instead of the app root.
+ * that page's default route instead of the app root. A non-default authoring
+ * frontend passes its own `routeTree`/`manifest` pair; the boot is identical.
  */
-export function mount(opts?: { pageId?: string }) {
+export function mount(opts?: Parameters<typeof createMpaRouter>[0]) {
   const router = createMpaRouter(opts);
   root.render(<RouterProvider router={router as never} />);
 }

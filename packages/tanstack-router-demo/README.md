@@ -13,14 +13,22 @@ metadata (a route→page manifest), because they cannot share a JS heap.
 
 - `src/spike/` — the minimal feasibility spike: TanStack Router on a memory
   history in a single Lynx view (proves the router runs on ReactLynx at all).
-- `src/mpa/routes.tsx` — the shared route tree + the page manifest that maps
-  routes to native pages (`home` owns `/` and `/profile`; `detail` owns
-  `/detail`; `settings` owns `/settings`).
+- `src/routes/*` — file-based routes (official TanStack convention) with
+  `export const page` markers declaring native-page boundaries (`home` owns `/`
+  and `/profile`; `detail` owns `/detail`; `settings` owns `/settings`).
+- `src/app/**` — the SAME app authored with the Next-style app-directory
+  convention (`page.tsx`, `layout.tsx`, `[param]/`, `export const container`
+  markers). `scripts/gen-next.mjs` translates it to the same artifact pair
+  (route tree + manifest); `tests/next-parity.test.ts` pins the equivalence.
+- `scripts/` — `codegen.mjs` (runs everything), `gen-mpa.mjs` +
+  `gen-next.mjs` (the two frontend translators), `lib/page-manifest.mjs`
+  (shared manifest compiler).
 - `src/mpa/create-router.tsx` — wires `createRouter` to `sparkling-navigation`
   through `sparkling-history` (`createMpaHistory` + `createSparklingHost`).
-- `src/mpa/mount.tsx` + `src/pages/{home,detail,settings}/index.tsx` — one
-  bundle entry per page. Every entry boots the same router; each derives its
-  start location from its launch `queryItems` (`__mpa_href`).
+- `src/mpa/mount.tsx` + generated `src/pages.gen/*` / `src/pages-next.gen/*` —
+  one bundle entry per page. Every entry boots the same runtime with
+  `mount({ pageId, routeTree, manifest })`; each derives its start location
+  from its launch `queryItems` (`__mpa_href`).
 - `src/shims/` — the bundler-level shims that let TanStack Router run on
   ReactLynx (see below).
 

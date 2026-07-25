@@ -24,4 +24,8 @@ await new Generator({ config, root }).run();
 const here = dirname(fileURLToPath(import.meta.url));
 execFileSync(process.execPath, [join(here, 'gen-mpa.mjs')], { stdio: 'inherit', cwd: root });
 
-console.log('codegen: routeTree.gen.ts + routes.manifest.ts + page entries written');
+// 3. The Next-style frontend translator (RFC phase 3): same artifacts from the
+// app-directory convention.
+execFileSync(process.execPath, [join(here, 'gen-next.mjs')], { stdio: 'inherit', cwd: root });
+
+console.log('codegen: routeTree(.next).gen.ts + manifests + page entries written');
