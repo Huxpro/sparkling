@@ -1,0 +1,39 @@
+{
+  "name": "sparkling-router",
+  "version": "2.1.0-rc.12",
+  "description": "URL-first declarative router core for Sparkling multi-container applications",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/sparkling-router"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/history": "1.162.0",
+    "@tanstack/react-router": "1.170.17",
+    "@tanstack/router-core": "1.171.14",
+    "sparkling-history": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "license": "Apache-2.0"
+}

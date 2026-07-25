@@ -1,0 +1,43 @@
+{
+  "name": "tanstack-router-demo",
+  "version": "2.1.0-rc.12",
+  "private": true,
+  "type": "module",
+  "description": "TanStack Router driving sparkling-navigation (MPA) demo & verification app",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/tanstack-router-demo"
+  },
+  "scripts": {
+    "codegen": "node scripts/codegen.mjs",
+    "build": "pnpm codegen && rspeedy build",
+    "build:web": "pnpm codegen && rspeedy build --environment web",
+    "dev": "pnpm codegen && rspeedy dev",
+    "dev:web": "pnpm codegen && rspeedy build --environment web && pnpm --filter sparkling-web-shell dev",
+    "pretest": "pnpm codegen",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@lynx-js/react": "^0.116.2",
+    "@tanstack/react-router": "1.170.17",
+    "sparkling-history": "workspace:*",
+    "sparkling-method": "workspace:*",
+    "sparkling-navigation": "workspace:*",
+    "sparkling-router": "workspace:*"
+  },
+  "devDependencies": {
+    "@lynx-js/react-rsbuild-plugin": "^0.12.7",
+    "@lynx-js/rspeedy": "^0.13.3",
+    "@lynx-js/types": "^3.7.0",
+    "@lynx-js/use-sync-external-store": "^1.5.0",
+    "@tanstack/router-generator": "^1.167.18",
+    "@tanstack/router-plugin": "^1.168.19",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "^22 || ^24"
+  }
+}
