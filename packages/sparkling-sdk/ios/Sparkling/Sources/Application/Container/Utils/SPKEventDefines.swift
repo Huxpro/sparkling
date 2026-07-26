@@ -23,6 +23,11 @@ public enum SPKEvent {
         static let actionTypeSwipe = "swipe"
     }
 
+    /// Hard-navigation stack protocol events (Sparkling Router).
+    enum Stack {
+        static let changed = "sparklingStackChanged"
+    }
+
     // MARK: - Common Keys
 
     /// Contains commonly used parameter keys across different event types.

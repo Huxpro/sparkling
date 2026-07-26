@@ -1,7 +1,7 @@
 {
   "name": "sparkling-navigation",
   "platforms": ["android", "ios", "web"],
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Router methods for navigation and page management in Sparkling apps",
   "methods": {
     "open": {
@@ -25,6 +25,97 @@
       },
       "returns": {
         "success": "boolean"
+      }
+    },
+    "stack.push": {
+      "description": "Push a hard-navigation stack entry (new native container)",
+      "parameters": {
+        "path": "string",
+        "search": "Record<string, string>",
+        "presentation": "string",
+        "usePrefetched": "boolean",
+        "animated": "boolean"
+      },
+      "returns": {
+        "code": "number",
+        "entryId": "string",
+        "msg": "string"
+      }
+    },
+    "stack.pop": {
+      "description": "Pop the top hard-navigation stack entry",
+      "parameters": {
+        "result": "any",
+        "animated": "boolean"
+      },
+      "returns": {
+        "code": "number",
+        "entryId": "string",
+        "msg": "string"
+      }
+    },
+    "stack.popTo": {
+      "description": "Pop hard-navigation entries until the given entryId is top",
+      "parameters": {
+        "entryId": "string",
+        "animated": "boolean"
+      },
+      "returns": {
+        "code": "number",
+        "entryId": "string",
+        "msg": "string"
+      }
+    },
+    "stack.replace": {
+      "description": "Replace the top hard-navigation stack entry",
+      "parameters": {
+        "path": "string",
+        "search": "Record<string, string>"
+      },
+      "returns": {
+        "code": "number",
+        "entryId": "string",
+        "msg": "string"
+      }
+    },
+    "stack.reset": {
+      "description": "Atomically declare the desired hard-navigation stack shape",
+      "parameters": {
+        "entries": "Array<{path:string,search?:Record<string,string>,presentation?:string}>"
+      },
+      "returns": {
+        "code": "number",
+        "entryId": "string",
+        "msg": "string"
+      }
+    },
+    "stack.getState": {
+      "description": "Read the current hard-navigation stack state",
+      "parameters": {},
+      "returns": {
+        "code": "number",
+        "data": "StackState"
+      }
+    },
+    "stack.prefetch": {
+      "description": "Pre-create a container and preload its bundle without presenting",
+      "parameters": {
+        "path": "string",
+        "search": "Record<string, string>"
+      },
+      "returns": {
+        "code": "number",
+        "msg": "string"
+      }
+    },
+    "stack.syncOwnLocation": {
+      "description": "Write back this container soft-nav path/search into the stack mirror",
+      "parameters": {
+        "path": "string",
+        "search": "Record<string, string>"
+      },
+      "returns": {
+        "code": "number"
       }
     }
   },

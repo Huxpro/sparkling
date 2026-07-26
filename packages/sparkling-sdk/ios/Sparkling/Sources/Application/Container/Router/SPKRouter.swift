@@ -57,8 +57,14 @@ public class SPKRouter: NSObject {
                 // We have to use topVC.children.last to get the navigationController.
                 naviVC.pushViewController(container, animated: true)
             } else {
-                return (nil, false)
+                // Fallback: present when no navigation controller is available (modal path).
+                let nav = UINavigationController(rootViewController: container)
+                nav.modalPresentationStyle = .fullScreen
+                topVC.present(nav, animated: true)
+                SPKContainerRegistry.shared.register(container)
+                return (container, true)
             }
+            SPKContainerRegistry.shared.register(container)
             return (container, true)
         }
         return (nil, false)

@@ -1,0 +1,41 @@
+{
+  "name": "@sparkling-example/router-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sparkling Router S0 soft-nav demo + container-boundary authoring sample",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "examples/router-demo"
+  },
+  "scripts": {
+    "codegen": "node ./scripts/codegen.mjs",
+    "prebuild": "pnpm codegen",
+    "predev": "pnpm codegen",
+    "build": "rspeedy build",
+    "dev": "rspeedy dev",
+    "preview": "rspeedy preview",
+    "test": "node --test ./scripts/codegen.test.mjs"
+  },
+  "dependencies": {
+    "@lynx-js/react": "^0.116.2",
+    "@tanstack/react-router": "1.170.18",
+    "sparkling-router": "workspace:*",
+    "url-search-params-polyfill": "^8.2.5"
+  },
+  "devDependencies": {
+    "@lynx-js/qrcode-rsbuild-plugin": "^0.4.4",
+    "@lynx-js/react-rsbuild-plugin": "^0.12.7",
+    "@lynx-js/rspeedy": "^0.13.3",
+    "@lynx-js/types": "^3.7.0",
+    "@rsbuild/core": "1.7.2",
+    "@tanstack/router-plugin": "1.168.23",
+    "@types/react": "^18.3.20",
+    "sparkling-router-plugin": "workspace:*",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "^22 || ^24"
+  }
+}

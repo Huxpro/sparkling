@@ -5,4 +5,7 @@ package com.tiktok.sparkling.method.router.utils
 
 object RouterProvider {
     var hostRouterDepend: IHostRouterDepend? = null
+
+    /** Optional stack-protocol host. Null until Android S4/P3 adoption. */
+    var hostStackRouterDepend: IHostStackRouterDepend? = null
 }
