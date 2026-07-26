@@ -10,19 +10,21 @@ import UIKit
 
 class RouterServiceImpl: RouterService, RouterStackService {
     func closeContainer(withParams params: Sparkling_Router.CloseMethodParamModel, completion: @escaping SparklingMethod.PipeMethod.CompletionBlock) {
-        let success: Bool
-        if let containerID = params.containerID, !containerID.isEmpty {
-            success = SPKRouter.close(
-                containerID: containerID,
-                animated: params.animated
-            )
-        } else {
-            success = SPKRouter.close(container: params.context?.pipeContainer)
-        }
-        if success {
-            completion(.succeeded(), nil)
-        } else {
-            completion(.failed(message: "Unable to close the container"), nil)
+        DispatchQueue.main.async {
+            let success: Bool
+            if let containerID = params.containerID, !containerID.isEmpty {
+                success = SPKRouter.close(
+                    containerID: containerID,
+                    animated: params.animated
+                )
+            } else {
+                success = SPKRouter.close(container: params.context?.pipeContainer)
+            }
+            if success {
+                completion(.succeeded(), nil)
+            } else {
+                completion(.failed(message: "Unable to close the container"), nil)
+            }
         }
     }
 
@@ -66,7 +68,7 @@ class RouterServiceImpl: RouterService, RouterStackService {
                 }
             } else {
                 if params.replace == true && params.replaceType == "alwaysCloseBeforeOpen" {
-                    if SPKRouter.close(container: params.context?.pipeContainer) {
+                    if !SPKRouter.close(container: params.context?.pipeContainer) {
                         print("Unable to close the container")
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -75,7 +77,7 @@ class RouterServiceImpl: RouterService, RouterStackService {
                 } else if params.replace == true {
                     openWithRouter { success in
                         if params.replaceType == "alwaysCloseAfterOpen" || (params.replaceType == "onlyCloseAfterOpenSucceed" && success) {
-                            if SPKRouter.close(container: params.context?.pipeContainer) {
+                            if !SPKRouter.close(container: params.context?.pipeContainer) {
                                 print("Unable to close the container")
                             }
                         }
@@ -119,10 +121,15 @@ class RouterServiceImpl: RouterService, RouterStackService {
                     target,
                     context: SPKContext(),
                     animated: params.animated,
-                    usePrefetched: params.usePrefetched
+                    usePrefetched: params.usePrefetched,
+                    sourceEntryId: sourceID
                 )
                 finish(result)
             case "pop":
+                guard let sourceID = sourceID, !sourceID.isEmpty else {
+                    completion(.invalidParameter(message: "pop requires a source container"), nil)
+                    return
+                }
                 finish(stack.pop(
                     entryId: sourceID,
                     result: params.result,
@@ -135,6 +142,10 @@ class RouterServiceImpl: RouterService, RouterStackService {
                 }
                 finish(stack.popTo(entryId: entryId, animated: params.animated))
             case "replace":
+                guard let sourceID = sourceID, !sourceID.isEmpty else {
+                    completion(.invalidParameter(message: "replace requires a source container"), nil)
+                    return
+                }
                 guard let target = self.target(from: params) else {
                     completion(.invalidParameter(message: "replace requires scheme and path"), nil)
                     return
@@ -146,8 +157,16 @@ class RouterServiceImpl: RouterService, RouterStackService {
                     animated: params.animated
                 ))
             case "reset":
-                let targets = (params.entries as? [[String: Any]] ?? []).compactMap {
-                    self.target(from: $0)
+                guard let rawEntries = params.entries as? [[String: Any]],
+                    !rawEntries.isEmpty
+                else {
+                    completion(.invalidParameter(message: "reset requires entries"), nil)
+                    return
+                }
+                let targets = rawEntries.compactMap { self.target(from: $0) }
+                guard targets.count == rawEntries.count else {
+                    completion(.invalidParameter(message: "reset contains an invalid entry"), nil)
+                    return
                 }
                 finish(stack.reset(
                     targets: targets,
@@ -161,12 +180,18 @@ class RouterServiceImpl: RouterService, RouterStackService {
                 }
                 finish(stack.prefetch(target, context: SPKContext()))
             case "syncOwnLocation":
-                stack.syncOwnLocation(
+                guard let sourceID = sourceID, !sourceID.isEmpty else {
+                    completion(
+                        .invalidParameter(message: "syncOwnLocation requires a source container"),
+                        nil
+                    )
+                    return
+                }
+                finish(stack.syncOwnLocation(
                     entryId: sourceID,
                     path: params.path ?? "/",
                     search: self.stringDictionary(params.search)
-                )
-                finish(SPKNavigationResult(success: true, message: "ok", entryId: sourceID))
+                ))
             default:
                 completion(
                     .invalidParameter(message: "Unknown stack command: \(params.command ?? "")"),

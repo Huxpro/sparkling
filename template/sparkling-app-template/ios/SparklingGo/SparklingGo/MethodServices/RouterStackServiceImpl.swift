@@ -40,10 +40,15 @@ extension RouterServiceImpl: RouterStackService {
                     target,
                     context: SPKContext(),
                     animated: params.animated,
-                    usePrefetched: params.usePrefetched
+                    usePrefetched: params.usePrefetched,
+                    sourceEntryId: sourceID
                 )
                 finish(result)
             case "pop":
+                guard let sourceID = sourceID, !sourceID.isEmpty else {
+                    completion(.invalidParameter(message: "pop requires a source container"), nil)
+                    return
+                }
                 finish(stack.pop(
                     entryId: sourceID,
                     result: params.result,
@@ -56,6 +61,10 @@ extension RouterServiceImpl: RouterStackService {
                 }
                 finish(stack.popTo(entryId: entryId, animated: params.animated))
             case "replace":
+                guard let sourceID = sourceID, !sourceID.isEmpty else {
+                    completion(.invalidParameter(message: "replace requires a source container"), nil)
+                    return
+                }
                 guard let target = self.stackTarget(from: params) else {
                     completion(.invalidParameter(message: "replace requires scheme and path"), nil)
                     return
@@ -67,8 +76,16 @@ extension RouterServiceImpl: RouterStackService {
                     animated: params.animated
                 ))
             case "reset":
-                let targets = (params.entries as? [[String: Any]] ?? []).compactMap {
-                    self.stackTarget(from: $0)
+                guard let rawEntries = params.entries as? [[String: Any]],
+                    !rawEntries.isEmpty
+                else {
+                    completion(.invalidParameter(message: "reset requires entries"), nil)
+                    return
+                }
+                let targets = rawEntries.compactMap { self.stackTarget(from: $0) }
+                guard targets.count == rawEntries.count else {
+                    completion(.invalidParameter(message: "reset contains an invalid entry"), nil)
+                    return
                 }
                 finish(stack.reset(
                     targets: targets,
@@ -82,12 +99,18 @@ extension RouterServiceImpl: RouterStackService {
                 }
                 finish(stack.prefetch(target, context: SPKContext()))
             case "syncOwnLocation":
-                stack.syncOwnLocation(
+                guard let sourceID = sourceID, !sourceID.isEmpty else {
+                    completion(
+                        .invalidParameter(message: "syncOwnLocation requires a source container"),
+                        nil
+                    )
+                    return
+                }
+                finish(stack.syncOwnLocation(
                     entryId: sourceID,
                     path: params.path ?? "/",
                     search: self.stackStringDictionary(params.search)
-                )
-                finish(SPKNavigationResult(success: true, message: "ok", entryId: sourceID))
+                ))
             default:
                 completion(
                     .invalidParameter(message: "Unknown stack command: \(params.command ?? "")"),

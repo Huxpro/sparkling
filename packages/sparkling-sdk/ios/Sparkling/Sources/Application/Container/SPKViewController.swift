@@ -228,6 +228,7 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
 
     var _willDestory: Bool = false
     var pendingStackRemovalReason: SPKStackChangeReason?
+    var pendingStackRemovesNavigationController = false
 
     var hasExecuteDidAppearedOnce: Bool = false
     var isInBackground: Bool = false
@@ -390,6 +391,8 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
             || self.isBeingDismissed
             || self.navigationController?.isBeingDismissed == true
         {
+            self.pendingStackRemovesNavigationController =
+                self.navigationController?.isBeingDismissed == true
             self.pendingStackRemovalReason =
                 self.transitionCoordinator?.isInteractive == true
                 ? .userBackGesture
@@ -398,6 +401,7 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
         self.transitionCoordinator?.notifyWhenInteractionChanges { [weak self] context in
             if context.isCancelled {
                 self?.pendingStackRemovalReason = nil
+                self?.pendingStackRemovesNavigationController = false
                 return
             }
             self?.send(
@@ -435,9 +439,11 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
         if let reason = self.pendingStackRemovalReason {
             SPKNavigationStack.shared.didRemove(
                 containerID: self.containerID,
-                reason: reason
+                reason: reason,
+                removesNavigationController: self.pendingStackRemovesNavigationController
             )
             self.pendingStackRemovalReason = nil
+            self.pendingStackRemovesNavigationController = false
         }
 
         if self.navigationController != nil {
