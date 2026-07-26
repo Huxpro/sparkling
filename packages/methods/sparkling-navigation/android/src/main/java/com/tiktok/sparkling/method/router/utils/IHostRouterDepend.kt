@@ -46,6 +46,12 @@ interface IHostRouterDepend {
         animated: Boolean? = false,
     ): Boolean
 
+    fun executeStackCommand(
+        bridgeContext: IBridgeContext?,
+        command: RouterStackCommand,
+        context: Context?,
+    ): RouterStackResult? = null
+
     fun provideRouteOpenHandlerList(contextProviderFactory: ContextProviderFactory?): List<AbsRouteOpenHandler> = listOf()
 
     fun provideRouteOpenExceptionHandler(contextProviderFactory: ContextProviderFactory?): AbsRouteOpenHandler? = null

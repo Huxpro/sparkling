@@ -63,6 +63,13 @@ class SparklingFragment : Fragment() {
         sparklingView?.getKitView()?.onHide()
     }
 
+    override fun onDestroyView() {
+        sparklingView?.release()
+        sparklingView = null
+        hasLoad = false
+        super.onDestroyView()
+    }
+
     fun loadUrl() {
         sparklingView?.loadUrl()
     }

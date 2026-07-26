@@ -34,6 +34,16 @@ const targets = [
     type: 'jest',
   },
   {
+    name: 'sparkling-router',
+    filter: 'sparkling-router',
+    type: 'jest',
+  },
+  {
+    name: 'sparkling-router-plugin',
+    filter: 'sparkling-router-plugin',
+    type: 'jest',
+  },
+  {
     name: 'sparkling-storage',
     filter: 'sparkling-storage',
     type: 'jest',
@@ -65,9 +75,15 @@ const runCommand = (cmd, args) =>
   });
 
 console.log('\n[coverage:ts] Building shared TypeScript workspace deps');
-const sharedPrebuild = runCommand('pnpm', ['--filter', 'sparkling-method', 'build']);
+const sharedPrebuild = runCommand('pnpm', [
+  '--filter',
+  'sparkling-method',
+  '--filter',
+  'sparkling-navigation',
+  'build',
+]);
 if (sharedPrebuild.status !== 0) {
-  failures.push('sparkling-method (prebuild)');
+  failures.push('shared TypeScript deps (prebuild)');
 }
 
 for (const target of targets) {

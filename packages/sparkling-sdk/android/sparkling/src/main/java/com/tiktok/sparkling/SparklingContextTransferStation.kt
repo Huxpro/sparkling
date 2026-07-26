@@ -3,17 +3,20 @@
 // LICENSE file in the root directory of this source tree.
 package com.tiktok.sparkling
 
+import java.util.concurrent.ConcurrentHashMap
+
 object SparklingContextTransferStation {
-    private val sparklingContextMap = mutableMapOf<String, SparklingContext>()
+    private val sparklingContextMap = ConcurrentHashMap<String, SparklingContext>()
 
     fun saveSparklingContext(context: SparklingContext) {
         sparklingContextMap[context.containerId] = context
     }
 
-    fun getSparklingContext(containerId: String?): SparklingContext? = sparklingContextMap[containerId]
+    fun getSparklingContext(containerId: String?): SparklingContext? =
+        containerId?.let(sparklingContextMap::get)
 
     fun releaseSparklingContext(containerId: String?) {
-        sparklingContextMap.remove(containerId)
+        containerId?.let(sparklingContextMap::remove)
     }
 
     @JvmStatic

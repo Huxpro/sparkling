@@ -17,6 +17,7 @@ import com.tiktok.sparkling.hybridkit.config.SparklingLynxConfig
 import com.tiktok.sparkling.method.registry.core.SparklingBridgeManager
 import com.tiktok.sparkling.method.router.close.RouterCloseMethod
 import com.tiktok.sparkling.method.router.open.RouterOpenMethod
+import com.tiktok.sparkling.method.router.stack.RouterStackMethod
 import com.tiktok.sparkling.method.router.utils.RouterProvider
 import com.tiktok.sparkling.method.runtime.depend.CommonDependsProvider
 import com.tiktok.sparkling.method.storage.getItem.StorageGetItemMethod
@@ -76,6 +77,7 @@ class SparklingApplication : Application() {
     private fun initSparklingMethods() {
         SparklingBridgeManager.registerIDLMethod("router.open", clazz = RouterOpenMethod::class.java) { RouterOpenMethod() }
         SparklingBridgeManager.registerIDLMethod("router.close", clazz = RouterCloseMethod::class.java) { RouterCloseMethod() }
+        SparklingBridgeManager.registerIDLMethod("router.stack", clazz = RouterStackMethod::class.java) { RouterStackMethod() }
         RouterProvider.hostRouterDepend = SparklingHostRouterDepend()
 
         SparklingBridgeManager.registerIDLMethod("storage.setItem", clazz = StorageSetItemMethod::class.java) { StorageSetItemMethod() }

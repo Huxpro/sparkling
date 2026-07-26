@@ -20,11 +20,31 @@
     "close": {
       "description": "Close the current page or route",
       "parameters": {
-        "result": "any",
+        "containerID": "string",
         "animated": "boolean"
       },
       "returns": {
         "success": "boolean"
+      }
+    },
+    "stack": {
+      "description": "Execute a URL-first native container stack command",
+      "parameters": {
+        "command": "string",
+        "path": "string",
+        "search": "Record<string, string>",
+        "bundle": "string",
+        "scheme": "string",
+        "presentation": "push | modal",
+        "entryId": "string",
+        "entries": "Array<object>",
+        "result": "any",
+        "animated": "boolean",
+        "usePrefetched": "boolean"
+      },
+      "returns": {
+        "entryId": "string",
+        "state": "StackState"
       }
     }
   },

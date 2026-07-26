@@ -18,6 +18,7 @@ import com.tiktok.sparkling.method.registry.core.IDLBridgeMethod
 import com.tiktok.sparkling.method.registry.core.SparklingBridgeManager
 import com.tiktok.sparkling.method.router.close.RouterCloseMethod
 import com.tiktok.sparkling.method.router.open.RouterOpenMethod
+import com.tiktok.sparkling.method.router.stack.RouterStackMethod
 import com.tiktok.sparkling.method.router.utils.RouterProvider
 import com.example.sparkling.go.BuiltinTemplateProvider
 
@@ -60,6 +61,7 @@ class SparklingApplication : Application() {
         if (!autolinked) {
             SparklingBridgeManager.registerIDLMethod(RouterOpenMethod::class.java)
             SparklingBridgeManager.registerIDLMethod(RouterCloseMethod::class.java)
+            SparklingBridgeManager.registerIDLMethod(RouterStackMethod::class.java)
         }
         RouterProvider.hostRouterDepend = SparklingHostRouterDepend()
     }

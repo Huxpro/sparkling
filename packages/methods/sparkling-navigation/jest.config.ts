@@ -8,6 +8,9 @@ const config: Config = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],
+  moduleNameMapper: {
+    '^sparkling-method$': '<rootDir>/src/__tests__/mocks/sparkling-method.js',
+  },
   moduleFileExtensions: ['ts', 'js', 'json'],
   collectCoverageFrom: [
     'src/**/*.ts',

@@ -276,9 +276,9 @@ class RouterCoverageTest {
 
         assertEquals(IDLBridgeMethod.FAIL, callback.failureCode)
         assertEquals("Failed to close current container", callback.failureMsg)
-        // animated default is true when null
+        // animated defaults to false on every platform
         verify(exactly = 1) {
-            hostRouter.closeView(bridgeContext, BridgePlatformType.LYNX, "  ", true)
+            hostRouter.closeView(bridgeContext, BridgePlatformType.LYNX, "  ", false)
         }
     }
 

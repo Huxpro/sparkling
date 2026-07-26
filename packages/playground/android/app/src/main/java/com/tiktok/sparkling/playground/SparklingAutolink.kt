@@ -16,7 +16,7 @@ object SparklingAutolink {
             ),
             SparklingAutolinkModule(
                 name = "sparkling-navigation",
-                androidPackage = "com.tiktok.sparkling.methods.router",
+                androidPackage = "com.tiktok.sparkling.method.router",
                 className = "RouterMethod",
             ),
             SparklingAutolinkModule(

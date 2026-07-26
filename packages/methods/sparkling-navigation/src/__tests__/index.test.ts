@@ -2,14 +2,19 @@
 // Copyright (c) 2025 TikTok Pte. Ltd.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
+jest.mock('sparkling-method', () => ({
+  __esModule: true,
+  default: {
+    call: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+  },
+}));
 
-import { createMockPipe } from './test-utils';
 import * as routerModule from '../../index';
 import { open as openDirect } from '../open/open';
 import { close as closeDirect } from '../close/close';
 import { navigate as navigateDirect } from '../navigate/navigate';
-
-jest.mock('sparkling-method', () => ({ call: jest.fn() }), { virtual: true });
 
 describe('sparkling-navigation module exports', () => {
   describe('function exports', () => {
@@ -29,7 +34,20 @@ describe('sparkling-navigation module exports', () => {
     });
 
     it('should export all required functions', async () => {
-      const expectedFunctions = ['open', 'close', 'navigate'];
+      const expectedFunctions = [
+        'open',
+        'close',
+        'navigate',
+        'getState',
+        'pop',
+        'popTo',
+        'prefetch',
+        'push',
+        'replace',
+        'reset',
+        'subscribeStackChanges',
+        'syncOwnLocation',
+      ];
       const moduleAny: Record<string, unknown> = routerModule as unknown as Record<string, unknown>;
       expectedFunctions.forEach(functionName => {
         expect(moduleAny[functionName]).toBeDefined();
@@ -50,7 +68,10 @@ describe('sparkling-navigation module exports', () => {
           CloseResponse,
           NavigateRequest,
           NavigateResponse,
-          NavigateOptions
+          NavigateOptions,
+          StackEntry,
+          StackState,
+          NativeStackProtocol
         } from '../../index'
       `;
 
@@ -65,7 +86,22 @@ describe('sparkling-navigation module exports', () => {
       const moduleAny: Record<string, unknown> = routerModule as unknown as Record<string, unknown>;
       const exportedKeys = Object.keys(moduleAny);
 
-      const expectedExports = ['open', 'close', 'navigate'];
+      const expectedExports = [
+        'open',
+        'close',
+        'navigate',
+        'STACK_CHANGED_EVENT',
+        'getState',
+        'nativeStack',
+        'pop',
+        'popTo',
+        'prefetch',
+        'push',
+        'replace',
+        'reset',
+        'subscribeStackChanges',
+        'syncOwnLocation',
+      ];
 
       const unexpectedExports = exportedKeys.filter(key => expectedExports.indexOf(key) === -1);
       expect(unexpectedExports).toHaveLength(0);
@@ -74,7 +110,7 @@ describe('sparkling-navigation module exports', () => {
     it('should export exactly the expected number of functions', async () => {
       const moduleAny: Record<string, unknown> = routerModule as unknown as Record<string, unknown>;
       const exportedFunctions = Object.keys(moduleAny).filter(key => typeof moduleAny[key] === 'function');
-      expect(exportedFunctions).toHaveLength(3); // open, close and navigate
+      expect(exportedFunctions).toHaveLength(12);
     });
   });
 

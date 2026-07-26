@@ -68,9 +68,18 @@ object KitViewManager {
         return result
     }
 
-    fun removeKitView(containerId: String) {
-        val ref = kitViewMap.remove(containerId) ?: return
+    fun removeKitView(
+        containerId: String,
+        expectedView: IKitView? = null,
+    ) {
+        val ref = kitViewMap[containerId] ?: return
         val view = ref.get()
+        if (expectedView != null && view !== expectedView) {
+            return
+        }
+        if (!kitViewMap.remove(containerId, ref)) {
+            return
+        }
         if (destroyedListeners.isNotEmpty()) {
             destroyedListeners.forEach { runCatching { it.onKitViewDestroyed(containerId, view) } }
         }

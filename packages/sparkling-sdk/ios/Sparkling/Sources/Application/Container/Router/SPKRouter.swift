@@ -41,27 +41,32 @@ public class SPKRouter: NSObject {
     ///   - context: The context object containing page configuration.
     /// - Returns: A tuple containing the created container and success status, or nil if failed.
     public static func open(withURL urlString: String?, context: SPKContext?) -> ((UIViewController & SPKContainerProtocol)?, Bool)? {
+        return open(
+            withURL: urlString,
+            context: context,
+            presentation: "push",
+            animated: true
+        )
+    }
+
+    public static func open(
+        withURL urlString: String?,
+        context: SPKContext?,
+        presentation: String,
+        animated: Bool
+    ) -> ((UIViewController & SPKContainerProtocol)?, Bool)? {
         guard let urlString = urlString else {
             return nil
         }
         context?.originURL = urlString
-        let container = self.create(withURL: urlString, context: context)
-        if let container = container as? (UIViewController & SPKContainerProtocol),
-            let topVC = SPKResponder.topViewController
-        {
-            if let naviVC = topVC.navigationController as? UINavigationController {
-                naviVC.pushViewController(container, animated: true)
-            } else if let naviVC = topVC.children.last as? UINavigationController {
-                // Currently, we only support returning a NavigationController as in SwiftUI.
-                // In this situation, the topVC should be the UIHostingController, and it its navigationController is null.
-                // We have to use topVC.children.last to get the navigationController.
-                naviVC.pushViewController(container, animated: true)
-            } else {
-                return (nil, false)
-            }
-            return (container, true)
-        }
-        return (nil, false)
+        var target = SPKNavigationTarget.from(urlString: urlString)
+        target.presentation = presentation
+        let (container, result) = SPKNavigationStack.shared.push(
+            target,
+            context: context,
+            animated: animated
+        )
+        return (container, result.success)
     }
 
     /// Opens a URL in the system's default web browser.
@@ -103,7 +108,20 @@ public class SPKRouter: NSObject {
     /// - If the navigation controller is presented modally, it dismisses the entire stack.
     /// - Does nothing if no appropriate navigation context is found.
     public static func closeTopViewController() {
-        guard let topVC = SPKResponder.topViewController, let naviVC = topVC.children.last as? UINavigationController else {
+        guard let topVC = SPKResponder.topViewController else {
+            return
+        }
+        if let sparkling = topVC as? SPKViewController,
+            SPKNavigationStack.shared.pop(
+                entryId: sparkling.containerID,
+                animated: true
+            ).success
+        {
+            return
+        }
+        guard let naviVC = topVC.navigationController
+            ?? topVC.children.last(where: { $0 is UINavigationController }) as? UINavigationController
+        else {
             return
         }
         if naviVC.viewControllers.count > 1 {
