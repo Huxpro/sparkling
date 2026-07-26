@@ -1,0 +1,38 @@
+{
+  "version": "1",
+  "scheme": {
+    "base": "hybrid://lynxview_page"
+  },
+  "containers": [
+    {
+      "bundle": "feed.lynx.bundle",
+      "presentation": "push",
+      "routes": [
+        {
+          "path": "/feed/$postId"
+        },
+        {
+          "path": "/feed"
+        }
+      ]
+    },
+    {
+      "bundle": "main.lynx.bundle",
+      "presentation": "push",
+      "routes": [
+        {
+          "path": "/"
+        }
+      ]
+    },
+    {
+      "bundle": "settings.lynx.bundle",
+      "presentation": "modal",
+      "routes": [
+        {
+          "path": "/settings"
+        }
+      ]
+    }
+  ]
+}

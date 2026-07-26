@@ -394,6 +394,9 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
                     SPKEvent.Common.containerIdKey: self?.containerID ?? "",
                     SPKEvent.Back.actionFromKey: SPKEvent.Back.actionTypeSwipe,
                 ], callback: nil)
+            if let containerID = self?.containerID, !containerID.isEmpty {
+                SPKStackCoordinator.shared.noteUserBack(containerID: containerID, fromGesture: true)
+            }
         }
 
         self.navigationController?.interactivePopGestureRecognizer?.delegate = self.oldDelegate
@@ -597,6 +600,10 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
                 SPKEvent.Common.containerIdKey: self.containerID,
                 SPKEvent.Back.actionFromKey: SPKEvent.Back.actionTypeNavBarBackPress,
             ])
+
+        if !self.containerID.isEmpty {
+            SPKStackCoordinator.shared.noteUserBack(containerID: self.containerID, fromGesture: false)
+        }
 
         if self.navigationController?.viewControllers.count ?? 0 > 1 {
             //MARK: currently only support lynx
