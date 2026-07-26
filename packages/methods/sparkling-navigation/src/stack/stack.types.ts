@@ -31,6 +31,8 @@ export interface StackChangedEvent {
     reason: StackChangeReason;
     result?: {
         forEntryId: string;
+        /** The container that produced the result, used to correlate concurrent pushes. */
+        fromEntryId?: string;
         value: unknown;
     };
 }

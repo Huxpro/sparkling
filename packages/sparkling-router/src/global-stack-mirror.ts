@@ -17,7 +17,8 @@ export class GlobalStackMirror {
     private currentState: StackState = { version: 0, entries: [] };
     private readonly listeners = new Set<StackMirrorListener>();
     private stopNativeSubscription?: () => void;
-    private started = false;
+    private startPromise?: Promise<StackState>;
+    private generation = 0;
 
     constructor(private readonly transport: NativeStackProtocol) {}
 
@@ -26,18 +27,23 @@ export class GlobalStackMirror {
     }
 
     async start(): Promise<StackState> {
-        if (!this.started) {
-            this.started = true;
+        if (!this.startPromise) {
+            const generation = this.generation;
             this.stopNativeSubscription = this.transport.subscribe((event) => {
-                this.accept(event.state, event);
+                if (generation === this.generation) {
+                    this.accept(event.state, event);
+                }
             });
-            try {
-                this.accept(await this.transport.getState());
-            } catch {
-                // The event subscription remains active and can converge later.
-            }
+            this.startPromise = this.transport.getState()
+                .then((state) => {
+                    if (generation === this.generation) {
+                        this.accept(state);
+                    }
+                    return this.currentState;
+                })
+                .catch(() => this.currentState);
         }
-        return this.currentState;
+        return this.startPromise;
     }
 
     subscribe(listener: StackMirrorListener): () => void {
@@ -49,9 +55,10 @@ export class GlobalStackMirror {
     }
 
     destroy(): void {
+        this.generation += 1;
         this.stopNativeSubscription?.();
         this.stopNativeSubscription = undefined;
-        this.started = false;
+        this.startPromise = undefined;
         this.listeners.clear();
     }
 

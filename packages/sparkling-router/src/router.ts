@@ -9,6 +9,7 @@ import {
 import {
     nativeStack,
     type NativeStackProtocol,
+    type NavResult,
     type StackChangedEvent,
 } from 'sparkling-navigation';
 import {
@@ -21,6 +22,10 @@ import {
     readInitialHref,
     type RouteManifest,
 } from './manifest';
+import {
+    bindSparklingRuntime,
+    type SparklingNavigationRuntime,
+} from './runtime-context';
 
 export interface SparklingRouterOptions<TRouteTree extends AnyRoute> {
     routeTree: TRouteTree;
@@ -29,55 +34,123 @@ export interface SparklingRouterOptions<TRouteTree extends AnyRoute> {
     initialHref?: string;
     context?: unknown;
     transport?: NativeStackProtocol;
+    onHardNavigationError?: (error: Error) => void;
 }
 
 interface PendingResult {
     resolve: (value: unknown) => void;
     reject: (error: Error) => void;
+    settled: boolean;
 }
 
 class NavigationResults {
-    private readonly pending = new Map<string, PendingResult[]>();
+    private readonly pendingByParent = new Map<string, PendingResult[]>();
+    private readonly pendingByChild = new Map<string, PendingResult>();
+    private readonly completedByChild = new Map<string, unknown>();
     private readonly stop: () => void;
 
     constructor(private readonly transport: NativeStackProtocol) {
         this.stop = transport.subscribe((event) => this.handle(event));
     }
 
-    wait(parentEntryId: string): Promise<unknown> {
-        return new Promise((resolve, reject) => {
-            const queue = this.pending.get(parentEntryId) ?? [];
-            queue.push({ resolve, reject });
-            this.pending.set(parentEntryId, queue);
+    prepare(parentEntryId: string): {
+        promise: Promise<unknown>;
+        bind: (childEntryId: string) => void;
+        cancel: (error: Error) => void;
+    } {
+        let pending!: PendingResult;
+        const promise = new Promise<unknown>((resolve, reject) => {
+            pending = {
+                settled: false,
+                resolve: (value) => {
+                    pending.settled = true;
+                    resolve(value);
+                },
+                reject: (error) => {
+                    pending.settled = true;
+                    reject(error);
+                },
+            };
+            const queue = this.pendingByParent.get(parentEntryId) ?? [];
+            queue.push(pending);
+            this.pendingByParent.set(parentEntryId, queue);
         });
-    }
-
-    rejectLatest(parentEntryId: string, error: Error): void {
-        const queue = this.pending.get(parentEntryId);
-        const pending = queue?.pop();
-        pending?.reject(error);
-        if (queue?.length === 0) {
-            this.pending.delete(parentEntryId);
-        }
+        return {
+            promise,
+            bind: (childEntryId) => {
+                if (pending.settled) {
+                    return;
+                }
+                if (this.completedByChild.has(childEntryId)) {
+                    const value = this.completedByChild.get(childEntryId);
+                    this.completedByChild.delete(childEntryId);
+                    this.removeFromParent(parentEntryId, pending);
+                    pending.resolve(value);
+                    return;
+                }
+                this.pendingByChild.set(childEntryId, pending);
+            },
+            cancel: (error) => {
+                if (pending.settled) {
+                    return;
+                }
+                this.removeFromParent(parentEntryId, pending);
+                for (const [childEntryId, candidate] of this.pendingByChild) {
+                    if (candidate === pending) {
+                        this.pendingByChild.delete(childEntryId);
+                    }
+                }
+                pending.reject(error);
+            },
+        };
     }
 
     destroy(): void {
         this.stop();
-        this.pending.forEach((queue) => {
+        this.pendingByParent.forEach((queue) => {
             queue.forEach(({ reject }) => reject(new Error('Sparkling router was destroyed')));
         });
-        this.pending.clear();
+        this.pendingByParent.clear();
+        this.pendingByChild.clear();
+        this.completedByChild.clear();
     }
 
     private handle(event: StackChangedEvent): void {
         if (!event.result) {
             return;
         }
-        const queue = this.pending.get(event.result.forEntryId);
+        const fromEntryId = event.result.fromEntryId;
+        if (fromEntryId) {
+            const pending = this.pendingByChild.get(fromEntryId);
+            if (!pending) {
+                this.completedByChild.set(fromEntryId, event.result.value);
+                return;
+            }
+            this.pendingByChild.delete(fromEntryId);
+            this.removeFromParent(event.result.forEntryId, pending);
+            pending.resolve(event.result.value);
+            return;
+        }
+
+        const queue = this.pendingByParent.get(event.result.forEntryId);
         const pending = queue?.shift();
         pending?.resolve(event.result.value);
         if (queue?.length === 0) {
-            this.pending.delete(event.result.forEntryId);
+            this.pendingByParent.delete(event.result.forEntryId);
+        }
+    }
+
+    private removeFromParent(parentEntryId: string, pending: PendingResult): void {
+        const queue = this.pendingByParent.get(parentEntryId);
+        if (!queue) {
+            return;
+        }
+        const index = queue.indexOf(pending);
+        if (index >= 0) {
+            queue.splice(index, 1);
+        }
+        if (queue.length === 0) {
+            this.pendingByParent.delete(parentEntryId);
         }
     }
 }
@@ -112,6 +185,7 @@ export function createSparklingRouter<TRouteTree extends AnyRoute>(
             ?? readInitialHref(options.manifest, options.containerBundle),
         transport,
         stackMirror,
+        onHardNavigationError: options.onHardNavigationError,
     });
     const router = createRouter({
         routeTree: options.routeTree,
@@ -121,32 +195,58 @@ export function createSparklingRouter<TRouteTree extends AnyRoute>(
     });
     const results = new NavigationResults(transport);
 
-    return {
+    const runtime = {
         router,
         history,
         stackMirror,
+        navigate(
+            path: string,
+            search: Record<string, string> = {},
+            navigationOptions: { replace?: boolean; animated?: boolean } = {},
+        ): Promise<NavResult> {
+            const request = {
+                ...buildStackLocation(options.manifest, path, search),
+                animated: navigationOptions.animated,
+            };
+            return navigationOptions.replace
+                ? transport.replace(request)
+                : transport.push(request);
+        },
         async pushWithResult(
             path: string,
             search: Record<string, string> = {},
         ): Promise<unknown> {
+            const request = buildStackLocation(options.manifest, path, search);
             const parentEntryId = history.currentEntryId;
             if (!parentEntryId) {
                 throw new Error('Current native stack entry is not available');
             }
-            const resultPromise = results.wait(parentEntryId);
-            const request = buildStackLocation(options.manifest, path, search);
-            const result = await transport.push(request);
-            if (result.code !== 1) {
-                results.rejectLatest(parentEntryId, new Error(result.msg));
+            const waiter = results.prepare(parentEntryId);
+            try {
+                const result = await transport.push(request);
+                if (result.code !== 1 || !result.entryId) {
+                    throw new Error(result.msg || 'Native push did not return an entry ID');
+                }
+                waiter.bind(result.entryId);
+            } catch (error) {
+                waiter.cancel(error instanceof Error ? error : new Error(String(error)));
             }
-            return resultPromise;
+            return waiter.promise;
         },
+        pop(result?: unknown, animated?: boolean): Promise<NavResult> {
+            return transport.pop({ result, animated });
+        },
+        popTo: transport.popTo.bind(transport),
+        reset: transport.reset.bind(transport),
+        prefetch: transport.prefetch.bind(transport),
         destroy(): void {
             results.destroy();
             history.destroy();
             stackMirror.destroy();
         },
     };
+    bindSparklingRuntime(router, runtime as SparklingNavigationRuntime);
+    return runtime;
 }
 
 export type SparklingRouterRuntime = ReturnType<typeof createSparklingRouter>;

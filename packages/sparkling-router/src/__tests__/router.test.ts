@@ -4,6 +4,10 @@ import type {
   StackChangedEvent,
   StackState,
 } from 'sparkling-navigation';
+import {
+  createRootRoute,
+  createRoute,
+} from '@tanstack/react-router';
 import { CompositeHistory } from '../composite-history';
 import { GlobalStackMirror } from '../global-stack-mirror';
 import {
@@ -12,6 +16,7 @@ import {
   resolveRoute,
   type RouteManifest,
 } from '../manifest';
+import { createSparklingRouter } from '../router';
 
 const manifest: RouteManifest = {
   version: 'test',
@@ -179,6 +184,23 @@ describe('CompositeHistory', () => {
     mirror.destroy();
   });
 
+  it('settles TanStack navigation after native owns a hard transition', async () => {
+    const { history, mirror, transport } = setup();
+    const subscriber = jest.fn();
+    history.subscribe(subscriber);
+
+    history.push('/settings');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(subscriber).toHaveBeenCalledWith(expect.objectContaining({
+      location: expect.objectContaining({ href: '/feed' }),
+      action: { type: 'PUSH' },
+    }));
+    history.destroy();
+    mirror.destroy();
+  });
+
   it('hands back to native only after memory history reaches its root', () => {
     const { history, mirror, transport } = setup();
     history.push('/feed/42');
@@ -188,5 +210,41 @@ describe('CompositeHistory', () => {
     expect(transport.pops).toBe(1);
     history.destroy();
     mirror.destroy();
+  });
+});
+
+describe('createSparklingRouter', () => {
+  it('correlates returned values with the child entry ID', async () => {
+    const transport = new FakeTransport();
+    const rootRoute = createRootRoute();
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: '/',
+    });
+    const runtime = createSparklingRouter({
+      routeTree: rootRoute.addChildren([indexRoute]),
+      manifest,
+      containerBundle: 'feed.lynx.bundle',
+      initialHref: '/',
+      transport,
+    });
+
+    const result = runtime.pushWithResult('/settings');
+    await Promise.resolve();
+    transport.emit({
+      state: {
+        version: 2,
+        entries: transport.state.entries,
+      },
+      reason: 'pop',
+      result: {
+        forEntryId: 'feed-entry',
+        fromEntryId: 'new-entry',
+        value: { saved: true },
+      },
+    });
+
+    await expect(result).resolves.toEqual({ saved: true });
+    runtime.destroy();
   });
 });

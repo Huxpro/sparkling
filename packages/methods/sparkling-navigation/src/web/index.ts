@@ -170,7 +170,11 @@ registerWebMethod('router.stack', (params, callback) => {
             publishStack(
                 'pop',
                 parent && 'result' in data
-                    ? { forEntryId: parent.id, value: data.result }
+                    ? {
+                        forEntryId: parent.id,
+                        fromEntryId: popped?.id,
+                        value: data.result,
+                    }
                     : undefined,
             );
             callback({ code: popped ? 1 : 0, msg: popped ? 'ok' : 'stack is empty', data: { state: webStackState } });

@@ -25,6 +25,7 @@ export interface CompositeHistoryOptions {
     initialHref: string;
     transport: NativeStackProtocol;
     stackMirror: GlobalStackMirror;
+    onHardNavigationError?: (error: Error) => void;
 }
 
 function splitHref(href: string): {
@@ -42,6 +43,7 @@ export class CompositeHistory implements RouterHistory {
     private readonly memory: RouterHistory;
     private readonly stopMirror: () => void;
     private converging = false;
+    private destroyed = false;
 
     constructor(private readonly options: CompositeHistoryOptions) {
         this.memory = createMemoryHistory({ initialEntries: [options.initialHref] });
@@ -56,17 +58,17 @@ export class CompositeHistory implements RouterHistory {
             });
         });
         this.stopMirror = options.stackMirror.subscribe((state) => {
-            const ownEntry = state.entries.find(
-                (entry) => entry.bundle === options.containerBundle
-                    && entry.id === this.currentEntryId,
-            ) ?? state.entries.find((entry) => entry.bundle === options.containerBundle);
+            const ownEntry = options.containerEntryId
+                ? state.entries.find((entry) => entry.id === options.containerEntryId)
+                : state.entries.find((entry) => entry.id === this.currentEntryId)
+                    ?? state.entries.find((entry) => entry.bundle === options.containerBundle);
             if (!ownEntry) {
                 return;
             }
             const href = locationHref(ownEntry.path, ownEntry.search);
             if (href !== this.memory.location.href) {
                 this.converging = true;
-                this.memory.replace(href);
+                this.memory.replace(href, undefined, { ignoreBlocker: true });
                 this.converging = false;
             }
         });
@@ -114,7 +116,7 @@ export class CompositeHistory implements RouterHistory {
             target.pathname,
             target.search,
         );
-        void this.options.transport.push(request);
+        this.runHardNavigation('PUSH', () => this.options.transport.push(request));
     };
 
     replace = (href: string, state?: unknown, navigateOptions?: NavigateOptions): void => {
@@ -132,7 +134,7 @@ export class CompositeHistory implements RouterHistory {
             target.pathname,
             target.search,
         );
-        void this.options.transport.replace(request);
+        this.runHardNavigation('REPLACE', () => this.options.transport.replace(request));
     };
 
     go = (index: number, navigateOptions?: NavigateOptions): void => {
@@ -170,6 +172,7 @@ export class CompositeHistory implements RouterHistory {
     };
 
     destroy = (): void => {
+        this.destroyed = true;
         this.stopMirror();
         this.memory.destroy();
     };
@@ -177,6 +180,31 @@ export class CompositeHistory implements RouterHistory {
     notify: RouterHistory['notify'] = (action) => {
         this.memory.notify(action);
     };
+
+    private runHardNavigation(
+        action: 'PUSH' | 'REPLACE',
+        navigate: () => Promise<{ code: number; msg: string }>,
+    ): void {
+        void navigate()
+            .then((result) => {
+                if (result.code !== 1) {
+                    this.options.onHardNavigationError?.(new Error(result.msg));
+                }
+            })
+            .catch((error: unknown) => {
+                this.options.onHardNavigationError?.(
+                    error instanceof Error ? error : new Error(String(error)),
+                );
+            })
+            .finally(() => {
+                // TanStack waits for a history notification to settle navigate().
+                // The old runtime keeps its local location because native owns the
+                // cross-container transition, so notify with the current snapshot.
+                if (!this.destroyed) {
+                    this.memory.notify({ type: action });
+                }
+            });
+    }
 }
 
 export function createCompositeHistory(

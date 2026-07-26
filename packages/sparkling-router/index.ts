@@ -9,3 +9,4 @@ export * from './src/container';
 export * from './src/global-stack-mirror';
 export * from './src/manifest';
 export * from './src/router';
+export * from './src/runtime-context';

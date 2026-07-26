@@ -2,10 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-import type {
-    StackLocationRequest,
-    StackPresentation,
+import {
+    type StackLocationRequest,
+    type StackPresentation,
 } from 'sparkling-navigation';
+
+declare const __DEV__: boolean;
+declare const __webpack_public_path__: string;
 
 export interface RouteManifestRoute {
     path: string;
@@ -36,6 +39,33 @@ function forEachRecord(
     callback: (key: string, value: string) => void,
 ): void {
     Object.keys(record).forEach((key) => callback(key, record[key]));
+}
+
+function getDevServerBaseURL(): string | undefined {
+    try {
+        if (typeof __DEV__ === 'undefined' || !__DEV__) {
+            return undefined;
+        }
+        const currentBundleURL = typeof lynx !== 'undefined'
+            ? lynx?.__globalProps?.queryItems?.url
+            : undefined;
+        if (typeof currentBundleURL === 'string') {
+            const parsed = new URL(currentBundleURL);
+            return `${parsed.origin}${parsed.pathname.slice(
+                0,
+                parsed.pathname.lastIndexOf('/') + 1,
+            )}`;
+        }
+        if (
+            typeof __webpack_public_path__ === 'string'
+            && __webpack_public_path__
+        ) {
+            return __webpack_public_path__;
+        }
+    } catch {
+        // Build/runtime globals are unavailable outside device development.
+    }
+    return undefined;
 }
 
 export function normalizePath(path: string): string {
@@ -107,7 +137,15 @@ export function buildStackLocation(
     forEachRecord(resolved.container.containerOptions ?? {}, (key, value) => {
         url.searchParams.set(key, value);
     });
-    url.searchParams.set('bundle', resolved.container.bundle);
+    const devServerBaseURL = getDevServerBaseURL();
+    if (devServerBaseURL) {
+        url.searchParams.set(
+            'url',
+            `${devServerBaseURL.replace(/\/+$/, '')}/${resolved.container.bundle.replace(/^\/+/, '')}`,
+        );
+    } else {
+        url.searchParams.set('bundle', resolved.container.bundle);
+    }
     url.searchParams.set('__path', resolved.path);
 
     return {
