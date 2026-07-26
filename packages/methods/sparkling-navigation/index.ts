@@ -37,4 +37,4 @@ export type {
     StackResetRequest,
     StackState,
     SyncOwnLocationRequest,
-} from './src/stack/stack.d';
+} from './src/stack/stack.types';

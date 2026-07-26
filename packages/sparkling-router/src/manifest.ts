@@ -31,6 +31,13 @@ export interface ResolvedRoute {
     path: string;
 }
 
+function forEachRecord(
+    record: Record<string, string>,
+    callback: (key: string, value: string) => void,
+): void {
+    Object.keys(record).forEach((key) => callback(key, record[key]));
+}
+
 export function normalizePath(path: string): string {
     const normalized = `/${path}`.replace(/\/+/g, '/').replace(/\/$/, '');
     return normalized || '/';
@@ -96,8 +103,8 @@ export function buildStackLocation(
     }
 
     const url = new URL(manifest.scheme.base);
-    Object.entries(search).forEach(([key, value]) => url.searchParams.set(key, value));
-    Object.entries(resolved.container.containerOptions ?? {}).forEach(([key, value]) => {
+    forEachRecord(search, (key, value) => url.searchParams.set(key, value));
+    forEachRecord(resolved.container.containerOptions ?? {}, (key, value) => {
         url.searchParams.set(key, value);
     });
     url.searchParams.set('bundle', resolved.container.bundle);
@@ -123,7 +130,7 @@ export function searchRecord(search: string): Record<string, string> {
 
 export function locationHref(path: string, search: Record<string, string>): string {
     const params = new URLSearchParams();
-    Object.entries(search).forEach(([key, value]) => params.set(key, value));
+    forEachRecord(search, (key, value) => params.set(key, value));
     const query = params.toString();
     return `${normalizePath(path)}${query ? `?${query}` : ''}`;
 }
@@ -160,7 +167,8 @@ export function readInitialHref(
     ]);
     const search: Record<string, string> = {};
 
-    Object.entries(queryItems).forEach(([key, value]) => {
+    Object.keys(queryItems).forEach((key) => {
+        const value = queryItems[key];
         if (!reserved.has(key) && value != null) {
             search[key] = String(value);
         }

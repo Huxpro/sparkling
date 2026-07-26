@@ -11,7 +11,7 @@ import type {
     StackChangedEvent,
     StackEntry,
     StackState,
-} from '../stack/stack.d';
+} from '../stack/stack.types';
 
 /**
  * How web navigation is actually performed. The default host drives the

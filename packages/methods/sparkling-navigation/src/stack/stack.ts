@@ -15,7 +15,7 @@ import type {
     StackResetRequest,
     StackState,
     SyncOwnLocationRequest,
-} from './stack.d';
+} from './stack.types';
 
 export const STACK_CHANGED_EVENT = 'router.stackchanged';
 const STACK_METHOD = 'router.stack';
