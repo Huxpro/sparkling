@@ -2,13 +2,6 @@
 // Copyright (c) 2025 TikTok Pte. Ltd.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-
-import { createMockPipe } from './test-utils';
-import * as routerModule from '../../index';
-import { open as openDirect } from '../open/open';
-import { close as closeDirect } from '../close/close';
-import { navigate as navigateDirect } from '../navigate/navigate';
-
 jest.mock('sparkling-method', () => ({
   __esModule: true,
   default: {
@@ -17,6 +10,11 @@ jest.mock('sparkling-method', () => ({
     off: jest.fn(),
   },
 }));
+
+import * as routerModule from '../../index';
+import { open as openDirect } from '../open/open';
+import { close as closeDirect } from '../close/close';
+import { navigate as navigateDirect } from '../navigate/navigate';
 
 describe('sparkling-navigation module exports', () => {
   describe('function exports', () => {
