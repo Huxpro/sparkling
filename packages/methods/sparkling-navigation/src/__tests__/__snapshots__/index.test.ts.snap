@@ -4,9 +4,6 @@ exports[`sparkling-navigation module exports snapshot testing for module structu
 {
   "exportCount": 14,
   "exportedKeys": [
-    "open",
-    "close",
-    "navigate",
     "STACK_CHANGED_EVENT",
     "getState",
     "nativeStack",
@@ -18,11 +15,11 @@ exports[`sparkling-navigation module exports snapshot testing for module structu
     "reset",
     "subscribeStackChanges",
     "syncOwnLocation",
-  ],
-  "functionNames": [
     "open",
     "close",
     "navigate",
+  ],
+  "functionNames": [
     "getState",
     "pop",
     "popTo",
@@ -32,6 +29,9 @@ exports[`sparkling-navigation module exports snapshot testing for module structu
     "reset",
     "subscribeStackChanges",
     "syncOwnLocation",
+    "open",
+    "close",
+    "navigate",
   ],
 }
 `;
