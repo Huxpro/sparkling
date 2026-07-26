@@ -1,3 +1,13 @@
+jest.mock('sparkling-method', () => ({
+  __esModule: true,
+  default: {
+    call: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+  },
+}));
+
+import pipe from 'sparkling-method';
 import {
   getState,
   push,
@@ -5,18 +15,10 @@ import {
   syncOwnLocation,
 } from '../../stack/stack';
 
-const mockCall = jest.fn();
-const mockOn = jest.fn();
-const mockOff = jest.fn();
-
-jest.mock('sparkling-method', () => ({
-  __esModule: true,
-  default: {
-    call: mockCall,
-    on: mockOn,
-    off: mockOff,
-  },
-}));
+const mockPipe = pipe as jest.Mocked<typeof pipe>;
+const mockCall = mockPipe.call;
+const mockOn = mockPipe.on;
+const mockOff = mockPipe.off;
 
 beforeEach(() => {
   jest.clearAllMocks();
