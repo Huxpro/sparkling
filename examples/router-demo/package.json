@@ -29,6 +29,7 @@
     "@lynx-js/react-rsbuild-plugin": "^0.12.7",
     "@lynx-js/rspeedy": "^0.13.3",
     "@lynx-js/types": "^3.7.0",
+    "@lynx-js/use-sync-external-store": "^1.5.0",
     "@rsbuild/core": "1.7.2",
     "@tanstack/router-plugin": "1.168.23",
     "@types/react": "^18.3.20",

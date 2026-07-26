@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node", "@lynx-js/types"]
+  },
+  "include": ["src", "tests", "harness", "vitest.config.ts", "lynx.config.ts"]
+}

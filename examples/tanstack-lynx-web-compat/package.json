@@ -1,0 +1,42 @@
+{
+  "name": "@sparkling-example/tanstack-lynx-web-compat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TanStack Router upstream-compat suite on experimental Lynx for Web + CompositeHistory",
+  "scripts": {
+    "build:app": "rspeedy build",
+    "build:harness": "rsbuild build --config harness/rsbuild.config.ts",
+    "build": "pnpm build:app && pnpm build:harness",
+    "dev:harness": "pnpm build:app && LYNX_BUNDLE_DIR=$PWD/dist rsbuild dev --config harness/rsbuild.config.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:e2e": "pnpm build && playwright test -c tests/playwright.config.ts",
+    "test": "pnpm test:unit && pnpm test:e2e",
+    "report": "node scripts/write-results.mjs"
+  },
+  "dependencies": {
+    "@lynx-js/react": "^0.116.2",
+    "@lynx-js/web-core": "^0.20.3",
+    "@lynx-js/web-elements": "^0.12.0",
+    "@tanstack/history": "1.161.6",
+    "@tanstack/react-router": "1.170.18",
+    "sparkling-router": "workspace:*",
+    "url-search-params-polyfill": "^8.2.5"
+  },
+  "devDependencies": {
+    "@lynx-js/react-rsbuild-plugin": "^0.12.7",
+    "@lynx-js/rspeedy": "^0.13.3",
+    "@lynx-js/types": "^3.7.0",
+    "@lynx-js/use-sync-external-store": "^1.5.0",
+    "@playwright/test": "^1.58.2",
+    "@rsbuild/core": "1.7.2",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.20",
+    "happy-dom": "^20.11.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  },
+  "engines": {
+    "node": "^22 || ^24"
+  }
+}
