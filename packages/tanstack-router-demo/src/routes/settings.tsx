@@ -4,8 +4,13 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { Screen, NavButton } from '../ui.js';
 
-// MPA extension: its own native page.
-export const page = { id: 'settings', containerParams: { title: 'Settings' } };
+// MPA extension: its own native page, presented modally (manifest v1
+// `presentation` — native support pending, containers fall back to push).
+export const page = {
+  id: 'settings',
+  presentation: 'modal',
+  containerParams: { title: 'Settings' },
+};
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,

@@ -121,11 +121,18 @@ globals**, so the host must not depend on them.
 (`defaultHref`, derived from the manifest via `defaultHrefForPage`) — never
 to `/`, which would render the root page's UI inside the wrong container.
 
-**Note on bundle size (demo simplification)**: every page bundle currently
-carries the *full* route tree — the generator emits per-page entries but does
-not yet prune each page's subtree, so bundle size grows linearly with page
-count. Subtree splitting per page boundary is the next step for the MPA
-codegen, not a property of the design.
+**Per-page tree pruning**: each bundle boots a *pruned* route tree
+(`src/pages.gen/<id>/routeTree.ts`): its own routes carry full options
+(components, loaders, `validateSearch`), while every foreign route is a
+path-only stub kept solely so `navigate({ to, params })` can build an href —
+which the manifest resolver then dispatches to the host; a stub never
+renders. The **full** `routeTree.gen.ts` remains the type-level source of
+truth, so cross-page links stay type-checked against the whole app. The
+runtime (`mount`/`createMpaRouter`) deliberately imports no default tree —
+a static default would drag every page's components back into every bundle.
+What pruning does **not** shrink is the per-bundle framework baseline
+(ReactLynx + router core + shims, ~330 kB in this demo); deduplicating that
+across bundles is shared-chunk work at the Lynx level, orthogonal to routing.
 
 ### File-based route manifest
 
@@ -136,16 +143,26 @@ with a page dimension. `createManifestPageResolver(manifest)` builds the
 
 ```ts
 const manifest = {
+  version: 1,                                  // schema version — the JS↔native contract
+  scheme: { base: 'hybrid://lynxview_page' },  // host scheme base
   pages: [
-    { id: 'home', paths: ['/', '/profile'] },       // one bundle, two routes
+    { id: 'home', paths: ['/', '/profile'] },  // one bundle, two routes
     { id: 'detail', paths: ['/detail'], containerParams: { title: 'Detail' } },
-    { id: 'settings', paths: ['/settings'] },
+    { id: 'settings', paths: ['/settings'], presentation: 'modal' },
   ],
 };
 ```
 
 The longest matching path prefix wins; if the destination page equals the
 current page, navigation stays in-page.
+
+Schema v1 notes: the manifest is **pure serializable data** — it is the
+contract shared by JS, codegen, and (eventually) the native side, so it is
+versioned; consumers must reject versions they don't understand rather than
+guess. `presentation: 'push' | 'modal'` declares how the destination
+container is presented; the sparkling host encodes it into the scheme
+(`presentation=modal`) — native support is part of the stack-protocol work,
+and containers that don't understand it fall back to push.
 
 ## File-based routing: reusing TanStack's compile-time toolchain
 
@@ -180,21 +197,37 @@ artifacts derived from the **same** route files:
 2. one bundle entry per native page (`src/pages.gen/<id>/index.tsx`), wired into
    `source.entry`.
 
-Page boundaries are declared inline in a route file — our extension to the
-convention:
+Page boundaries are declared two ways — our extension to the convention:
 
 ```ts
+// 1. In-file, in a route file:
 // src/routes/detail.$id.tsx
 export const page = { id: 'detail', containerParams: { title: 'Detail' } };
 export const Route = createFileRoute('/detail/$id')({ /* ... */ });
+
+// 2. Per-directory, claiming every route in the directory (and below):
+// src/routes/feed/-container.ts
+export const container = { id: 'feed', containerParams: { title: 'Feed' } };
 ```
 
-Routes without a `page` export belong to the root page (the one whose `page`
-has `root: true`). `gen-mpa.mjs` reads these markers and emits the manifest and
-entries; `createManifestPageResolver` consumes the manifest at runtime. The
-whole pipeline (`pnpm codegen`) is wired into build/dev/pretest, so
-`routeTree.gen.ts` + `routes.manifest.ts` + entries regenerate from the route
-files alone.
+The boundary file is prefixed **`-`** deliberately: the official generator
+*excludes* `-`-prefixed files from routing, while a `_` prefix would create a
+pathless layout route and corrupt the generated tree. An in-file `page`
+export overrides an inherited directory marker (an explicit carve-out, e.g. a
+modal page inside another page's path space).
+
+Marker extraction is **TypeScript-AST based** (no regex, no eval): markers
+must be statically evaluable literals (`satisfies`-wrapped is fine), and any
+unreadable form — re-export, referenced constant, computed value — fails the
+build. Codegen also enforces **boundary containment**: a route *without* a
+marker that sits under another page's declared path prefix would render in a
+surprising container, so it is a build error (move the file, or mark it).
+
+Routes without any marker belong to the root page (the one whose marker has
+`root: true`). `gen-mpa.mjs` reads the markers and emits the manifest,
+pruned per-page trees, and entries; `createManifestPageResolver` consumes the
+manifest at runtime. The whole pipeline (`pnpm codegen`) is wired into
+build/dev/pretest, so everything regenerates from the route files alone.
 
 ## What a navigation actually does
 
@@ -453,22 +486,25 @@ through as code, since functions cannot be compiled into a data manifest.
 
 `tests/next-parity.test.ts` pins the equivalence: identical route-id sets,
 deep-equal manifests, and the same cross-page/in-page navigation behavior over
-the same runtime — which is parameterized only in the sense that
-`mount({ pageId, routeTree, manifest })` now takes the artifact pair
-explicitly (defaulting to the TanStack ones); no runtime logic changed.
+the same runtime — `mount({ pageId, routeTree, manifest })` takes the artifact
+pair explicitly (no defaults: a static default import would pull the full tree
+into every bundle); no runtime logic changed.
 
-Both frontends build side by side here (`next-*` bundles) purely for the demo;
-a real app would pick one convention and ship it unprefixed. The Next-style
-surface is convention-compatible, not Next-compatible: server components, data
-fetching, and the rest of Next's runtime semantics are out of scope — this
-proves the *authoring* dimension is pluggable, nothing more.
+**Status: experimental.** The Next-style frontend exists to prove the
+authoring dimension is pluggable; it is not part of the v1 API surface, and
+shipping two conventions would split the ecosystem. It also skips per-page
+tree pruning (its entries boot the full next tree). Both frontends build side
+by side here (`next-*` bundles) purely for the demo; a real app would pick
+one convention and ship it unprefixed. The surface is convention-compatible,
+not Next-compatible: server components, data fetching, and the rest of Next's
+runtime semantics are out of scope.
 
 ## Packages & files
 
 - `packages/sparkling-history` — the reusable shim (contract + history +
-  sparkling host + manifest resolver + stack mirror). 39 tests.
+  sparkling host + manifest resolver + stack mirror). 40 tests.
 - `packages/tanstack-router-demo` — the spike, the file-based multi-page MPA
-  demo (two authoring frontends), and the headless tests (22: feature matrix +
+  demo (two authoring frontends), and the headless tests (35: feature matrix +
   generated-tree + next-parity).
   - `src/routes/*` — file-based routes (official convention + `page` markers).
   - `src/app/**` — the same app authored Next-style (`container` markers).

@@ -4,8 +4,12 @@
 import { useRouter } from '@tanstack/react-router';
 import { Screen, NavButton } from '../../ui.js';
 
-// Native-page boundary: its own native page.
-export const container = { id: 'settings', containerParams: { title: 'Settings' } };
+// Native-page boundary: its own native page, presented modally.
+export const container = {
+  id: 'settings',
+  presentation: 'modal',
+  containerParams: { title: 'Settings' },
+};
 
 export default function SettingsPage() {
   const router = useRouter();

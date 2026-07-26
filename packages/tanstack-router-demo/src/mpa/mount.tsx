@@ -14,7 +14,7 @@ import { createMpaRouter } from './create-router.js';
  * that page's default route instead of the app root. A non-default authoring
  * frontend passes its own `routeTree`/`manifest` pair; the boot is identical.
  */
-export function mount(opts?: Parameters<typeof createMpaRouter>[0]) {
+export function mount(opts: Parameters<typeof createMpaRouter>[0]) {
   const router = createMpaRouter(opts);
   root.render(<RouterProvider router={router as never} />);
 }

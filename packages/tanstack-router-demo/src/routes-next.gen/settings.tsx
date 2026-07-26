@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import Page from '../app/settings/page.js';
 
 // Page boundary translated from `export const container` in the app file.
-export const page = {"id":"settings","containerParams":{"title":"Settings"}};
+export const page = {"id":"settings","presentation":"modal","containerParams":{"title":"Settings"}};
 
 export const Route = createFileRoute('/settings')({
   component: Page,

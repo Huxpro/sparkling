@@ -28,7 +28,9 @@ metadata (a route→page manifest), because they cannot share a JS heap.
 - `src/mpa/mount.tsx` + generated `src/pages.gen/*` / `src/pages-next.gen/*` —
   one bundle entry per page. Every entry boots the same runtime with
   `mount({ pageId, routeTree, manifest })`; each derives its start location
-  from its launch `queryItems` (`__mpa_href`).
+  from its launch `queryItems` (`__mpa_href`). TanStack-frontend entries boot
+  a **pruned** per-page tree (`pages.gen/<id>/routeTree.ts`): own routes with
+  full options, foreign routes as path-only href stubs.
 - `src/shims/` — the bundler-level shims that let TanStack Router run on
   ReactLynx (see below).
 
