@@ -1,0 +1,45 @@
+{
+  "name": "sparkling-router",
+  "version": "2.1.0-rc.12",
+  "description": "URL-first declarative routing across Sparkling native containers",
+  "homepage": "https://tiktok.github.io/sparkling/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiktok/sparkling",
+    "directory": "packages/sparkling-router"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "index.ts",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@tanstack/history": "1.162.0",
+    "@tanstack/react-router": "1.170.18",
+    "sparkling-navigation": "workspace:*",
+    "url-search-params-polyfill": "8.2.5"
+  },
+  "peerDependencies": {
+    "@lynx-js/react": ">=0.116.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.8.3"
+  },
+  "license": "Apache-2.0"
+}

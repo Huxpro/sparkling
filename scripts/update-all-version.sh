@@ -110,6 +110,8 @@ declare -a TYPESCRIPT_FILES=(
     "packages/sparkling-sdk/package.json"
     "packages/sparkling-method/package.json"
     "packages/sparkling-types/package.json"
+    "packages/sparkling-router/package.json"
+    "packages/sparkling-router-plugin/package.json"
     "packages/methods/sparkling-navigation/package.json"
     "packages/methods/sparkling-media/package.json"
     "packages/methods/sparkling-storage/package.json"

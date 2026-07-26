@@ -61,7 +61,8 @@ jobs:
             sparkling_method:
               - 'packages/sparkling-method/**'
             sparkling_router:
-              - 'packages/methods/sparkling-router/**'
+              - 'packages/sparkling-router/**'
+              - 'packages/sparkling-router-plugin/**'
             sparkling_storage:
               - 'packages/methods/sparkling-storage/**'
             sparkling_sdk:
