@@ -5,6 +5,9 @@ const config: Config = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],
+  moduleNameMapper: {
+    '^prettier$': '<rootDir>/src/__tests__/mocks/prettier.js',
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/__tests__/**',
