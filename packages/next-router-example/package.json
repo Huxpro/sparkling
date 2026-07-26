@@ -1,0 +1,28 @@
+{
+  "name": "next-router-example",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Next.js App Router conventions running on Sparkling native navigation via sparkling-next-router",
+  "scripts": {
+    "prebuild:web": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-storage --filter sparkling-media --filter sparkling-history-shim build",
+    "build:web": "pnpm run prebuild:web && rspeedy build --environment web",
+    "dev:web": "pnpm run build:web && LYNX_BUNDLE_DIR=./dist/web pnpm --filter sparkling-web-shell dev"
+  },
+  "dependencies": {
+    "@lynx-js/react": "^0.116.2",
+    "sparkling-history-shim": "workspace:*",
+    "sparkling-navigation": "workspace:*",
+    "sparkling-next-router": "workspace:*"
+  },
+  "devDependencies": {
+    "@lynx-js/react-rsbuild-plugin": "^0.12.7",
+    "@lynx-js/rspeedy": "^0.13.3",
+    "@lynx-js/types": "^3.7.0",
+    "@rsbuild/core": "1.7.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "^22 || ^24"
+  }
+}

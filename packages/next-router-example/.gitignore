@@ -1,0 +1,4 @@
+dist
+.sparkling
+*.tsbuildinfo
+node_modules
