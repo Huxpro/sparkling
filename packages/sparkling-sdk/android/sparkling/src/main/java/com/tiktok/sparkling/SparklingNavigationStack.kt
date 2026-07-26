@@ -9,6 +9,7 @@ import android.net.Uri
 import com.tiktok.sparkling.hybridkit.KitViewManager
 import org.json.JSONObject
 import java.lang.ref.WeakReference
+import java.util.ArrayDeque
 
 data class SparklingNavigationTarget(
     val path: String,
@@ -30,13 +31,15 @@ private data class AndroidStackEntry(
     var search: Map<String, String>,
     val bundle: String,
     val presentation: String,
+    var returnToEntryId: String? = null,
+    var pendingLaunch: Boolean = false,
     var activity: WeakReference<Activity>? = null,
 ) {
     fun toMap(): Map<String, Any> =
         mapOf(
             "id" to id,
             "path" to path,
-            "search" to search,
+            "search" to search.toMap(),
             "bundle" to bundle,
             "presentation" to presentation,
         )
@@ -55,19 +58,24 @@ object SparklingNavigationStack {
     private val orderedIds = mutableListOf<String>()
     private val entries = linkedMapOf<String, AndroidStackEntry>()
     private val pendingReasons = mutableMapOf<String, String>()
-    private val pendingResults = mutableMapOf<String, Any?>()
-    private val prefetchedContexts = mutableMapOf<String, SparklingContext>()
+    private val cancelledLaunches = mutableSetOf<String>()
+    private val publicationQueue = ArrayDeque<JSONObject>()
+    private var isPublishing = false
 
     @Synchronized
     fun register(
         activity: Activity,
         sparklingContext: SparklingContext?,
-    ) {
-        val context = sparklingContext ?: return
+    ): Boolean {
+        val context = sparklingContext ?: return false
+        if (cancelledLaunches.remove(context.containerId)) {
+            return false
+        }
         val existing = entries[context.containerId]
         if (existing != null) {
             existing.activity = WeakReference(activity)
-            return
+            existing.pendingLaunch = false
+            return true
         }
         val target = targetFromScheme(context.scheme.orEmpty())
         entries[context.containerId] =
@@ -77,28 +85,19 @@ object SparklingNavigationStack {
                 search = target.search,
                 bundle = target.bundle,
                 presentation = target.presentation,
+                returnToEntryId = orderedIds.lastOrNull(),
                 activity = WeakReference(activity),
             )
         orderedIds += context.containerId
         publish("system")
+        return true
     }
 
     @Synchronized
     fun unregister(containerId: String?) {
         val id = containerId ?: return
-        val index = orderedIds.indexOf(id)
-        if (index < 0 || entries.remove(id) == null) return
-        orderedIds.removeAt(index)
-        val parentId = orderedIds.getOrNull(index - 1)
         val reason = pendingReasons.remove(id) ?: "system"
-        val value = pendingResults.remove(id)
-        val result =
-            if (parentId != null && value != null) {
-                mapOf("forEntryId" to parentId, "value" to value)
-            } else {
-                null
-            }
-        publish(reason, result)
+        removeRecord(id, reason, null, publishChange = true)
     }
 
     @Synchronized
@@ -106,34 +105,48 @@ object SparklingNavigationStack {
         context: Context,
         target: SparklingNavigationTarget,
         usePrefetched: Boolean = false,
+        sourceEntryId: String? = null,
         publishChange: Boolean = true,
     ): SparklingNavigationResult {
         if (target.scheme.isBlank()) {
             return SparklingNavigationResult(false, "scheme is required")
         }
-        if (target.presentation == "modal") {
+        if (target.presentation !in setOf("push", "modal")) {
+            return SparklingNavigationResult(false, "Unknown presentation: ${target.presentation}")
+        }
+        if (target.presentation != "push") {
             return SparklingNavigationResult(false, "modal presentation is not implemented on Android")
         }
-        val sparklingContext =
-            if (usePrefetched) {
-                prefetchedContexts.remove(target.scheme)
-            } else {
-                null
-            } ?: SparklingContext().also { it.scheme = target.scheme }
-        val success = Sparkling.build(context, sparklingContext).navigate()
-        if (!success) {
-            return SparklingNavigationResult(false, "Unable to start SparklingActivity")
+        if (usePrefetched) {
+            return SparklingNavigationResult(false, "Android container prefetch is not implemented")
         }
+        if (sourceEntryId != null) {
+            if (!entries.containsKey(sourceEntryId)) {
+                return SparklingNavigationResult(false, "Unknown source entry: $sourceEntryId")
+            }
+            if (orderedIds.lastOrNull() != sourceEntryId) {
+                return SparklingNavigationResult(false, "Source entry is not on top: $sourceEntryId")
+            }
+        }
+        val sparklingContext = SparklingContext().also { it.scheme = target.scheme }
         val id = sparklingContext.containerId
         entries[id] =
             AndroidStackEntry(
                 id = id,
                 path = target.path,
-                search = target.search,
+                search = target.search.toMap(),
                 bundle = target.bundle,
                 presentation = target.presentation,
+                returnToEntryId = sourceEntryId ?: orderedIds.lastOrNull(),
+                pendingLaunch = true,
             )
-        if (!orderedIds.contains(id)) orderedIds += id
+        orderedIds += id
+        val success = Sparkling.build(context, sparklingContext).navigate()
+        if (!success) {
+            entries.remove(id)
+            orderedIds.remove(id)
+            return SparklingNavigationResult(false, "Unable to start SparklingActivity")
+        }
         if (publishChange) publish("push")
         return SparklingNavigationResult(true, "ok", id)
     }
@@ -148,14 +161,12 @@ object SparklingNavigationStack {
             ?: return SparklingNavigationResult(false, "Stack is empty")
         val entry = entries[id]
             ?: return SparklingNavigationResult(false, "Unknown entry: $id")
-        pendingReasons[id] = reason
-        if (result != null) pendingResults[id] = result
         val activity = entry.activity?.get()
-        if (activity != null) {
-            activity.finish()
-        } else {
-            unregister(id)
+        if (entry.pendingLaunch && activity == null) {
+            cancelledLaunches += id
         }
+        removeRecord(id, reason, result, publishChange = true)
+        activity?.finish()
         return SparklingNavigationResult(true, "ok", id)
     }
 
@@ -166,12 +177,17 @@ object SparklingNavigationStack {
             return SparklingNavigationResult(false, "Unknown entry: $entryId")
         }
         val removing = orderedIds.drop(targetIndex + 1).reversed()
+        if (removing.isEmpty()) {
+            return SparklingNavigationResult(true, "ok", entryId)
+        }
         removing.forEach { id ->
-            entries[id]?.activity?.get()?.finish()
-            entries.remove(id)
-            orderedIds.remove(id)
-            pendingReasons.remove(id)
-            pendingResults.remove(id)
+            val entry = entries[id]
+            val activity = entry?.activity?.get()
+            if (entry?.pendingLaunch == true && activity == null) {
+                cancelledLaunches += id
+            }
+            removeRecord(id, "pop", null, publishChange = false)
+            activity?.finish()
         }
         publish("pop")
         return SparklingNavigationResult(true, "ok", entryId)
@@ -184,12 +200,27 @@ object SparklingNavigationStack {
         target: SparklingNavigationTarget,
     ): SparklingNavigationResult {
         val sourceId = sourceEntryId ?: orderedIds.lastOrNull()
-        val pushed = push(context, target, publishChange = false)
+            ?: return SparklingNavigationResult(false, "Stack is empty")
+        val source = entries[sourceId]
+            ?: return SparklingNavigationResult(false, "Unknown source entry: $sourceId")
+        if (orderedIds.lastOrNull() != sourceId) {
+            return SparklingNavigationResult(false, "Only the top entry can be replaced")
+        }
+        val pushed =
+            push(
+                context,
+                target,
+                sourceEntryId = sourceId,
+                publishChange = false,
+            )
         if (!pushed.success) return pushed
-        if (sourceId != null && sourceId != pushed.entryId) {
-            entries[sourceId]?.activity?.get()?.finish()
-            entries.remove(sourceId)
-            orderedIds.remove(sourceId)
+        val replacementId = pushed.entryId
+            ?: return SparklingNavigationResult(false, "Replacement entry ID is unavailable")
+        entries[replacementId]?.returnToEntryId = source.returnToEntryId
+        if (sourceId != replacementId) {
+            val activity = source.activity?.get()
+            removeRecord(sourceId, "replace", null, publishChange = false)
+            activity?.finish()
         }
         publish("replace")
         return pushed
@@ -200,20 +231,55 @@ object SparklingNavigationStack {
         context: Context,
         targets: List<SparklingNavigationTarget>,
     ): SparklingNavigationResult {
-        val oldEntries = orderedIds.toList()
-        oldEntries.reversed().forEach { id ->
-            entries[id]?.activity?.get()?.finish()
-            entries.remove(id)
+        if (targets.isEmpty()) {
+            return SparklingNavigationResult(false, "reset requires entries")
         }
-        orderedIds.clear()
+        val invalidTarget =
+            targets.firstOrNull {
+                it.scheme.isBlank() || it.presentation != "push"
+            }
+        if (invalidTarget != null) {
+            return SparklingNavigationResult(
+                false,
+                "Android reset requires valid push entries",
+            )
+        }
 
+        val oldEntries = orderedIds.toList()
+        val stagedIds = mutableListOf<String>()
         var lastResult = SparklingNavigationResult(true, "ok")
         targets.forEach { target ->
-            lastResult = push(context, target, publishChange = false)
+            lastResult =
+                push(
+                    context,
+                    target,
+                    sourceEntryId = orderedIds.lastOrNull(),
+                    publishChange = false,
+                )
             if (!lastResult.success) {
-                publish("reset")
+                stagedIds.reversed().forEach { id ->
+                    val entry = entries[id]
+                    val activity = entry?.activity?.get()
+                    if (entry?.pendingLaunch == true && activity == null) {
+                        cancelledLaunches += id
+                    }
+                    removeRecord(id, "reset", null, publishChange = false)
+                    activity?.finish()
+                }
                 return lastResult
             }
+            lastResult.entryId?.let(stagedIds::add)
+        }
+
+        oldEntries.reversed().forEach { id ->
+            val activity = entries[id]?.activity?.get()
+            removeRecord(id, "reset", null, publishChange = false)
+            activity?.finish()
+        }
+        var previousId: String? = null
+        stagedIds.forEach { id ->
+            entries[id]?.returnToEntryId = previousId
+            previousId = id
         }
         publish("reset")
         return lastResult
@@ -227,12 +293,10 @@ object SparklingNavigationStack {
         if (target.scheme.isBlank()) {
             return SparklingNavigationResult(false, "scheme is required")
         }
-        val sparklingContext = SparklingContext().also {
-            it.scheme = target.scheme
-        }
-        Sparkling.build(context, sparklingContext).processSparklingContext(sparklingContext)
-        prefetchedContexts[target.scheme] = sparklingContext
-        return SparklingNavigationResult(true, "ok", sparklingContext.containerId)
+        return SparklingNavigationResult(
+            false,
+            "Android container prefetch is not implemented",
+        )
     }
 
     @Synchronized
@@ -240,12 +304,18 @@ object SparklingNavigationStack {
         entryId: String?,
         path: String,
         search: Map<String, String>,
-    ) {
-        val id = entryId ?: orderedIds.lastOrNull() ?: return
-        val entry = entries[id] ?: return
+    ): SparklingNavigationResult {
+        val id = entryId
+            ?: return SparklingNavigationResult(false, "Source entry is required")
+        val entry = entries[id]
+            ?: return SparklingNavigationResult(false, "Unknown source entry: $id")
+        if (entry.path == path && entry.search == search) {
+            return SparklingNavigationResult(true, "ok", id)
+        }
         entry.path = path
-        entry.search = search
+        entry.search = search.toMap()
         publish("replace")
+        return SparklingNavigationResult(true, "ok", id)
     }
 
     @Synchronized
@@ -272,21 +342,36 @@ object SparklingNavigationStack {
             )
         if (result != null) event["result"] = result
         val payload = JSONObject(event)
-        KitViewManager.getKitViews().values.forEach { kitView ->
-            runCatching {
-                kitView.sendEventByJSON(STACK_CHANGED_EVENT, payload)
+        publicationQueue.addLast(payload)
+        if (isPublishing) return
+
+        isPublishing = true
+        try {
+            while (publicationQueue.isNotEmpty()) {
+                val next = publicationQueue.removeFirst()
+                KitViewManager.getKitViews().values.forEach { kitView ->
+                    runCatching {
+                        kitView.sendEventByJSON(STACK_CHANGED_EVENT, next)
+                    }
+                }
             }
+        } finally {
+            isPublishing = false
         }
     }
 
     private fun targetFromScheme(scheme: String): SparklingNavigationTarget {
-        val uri = runCatching { Uri.parse(scheme) }.getOrNull()
-        val query =
-            uri
-                ?.queryParameterNames
-                ?.associateWith { uri.getQueryParameter(it).orEmpty() }
-                ?.toMutableMap()
-                ?: mutableMapOf()
+        val query: MutableMap<String, String> =
+            runCatching {
+                val uri = Uri.parse(scheme)
+                if (!uri.isHierarchical) {
+                    mutableMapOf<String, String>()
+                } else {
+                    uri.queryParameterNames
+                        .associateWith { uri.getQueryParameter(it).orEmpty() }
+                        .toMutableMap()
+                }
+            }.getOrElse { mutableMapOf() }
         val path = query.remove("__path") ?: "/"
         val bundle = query.remove("bundle").orEmpty()
         query.remove("url")
@@ -296,5 +381,33 @@ object SparklingNavigationStack {
             bundle = bundle,
             scheme = scheme,
         )
+    }
+
+    private fun removeRecord(
+        id: String,
+        reason: String,
+        resultValue: Any?,
+        publishChange: Boolean,
+    ) {
+        val index = orderedIds.indexOf(id)
+        val removedEntry = entries[id]
+        if (index < 0 || removedEntry == null) return
+        entries.remove(id)
+        orderedIds.removeAt(index)
+        pendingReasons.remove(id)
+        if (publishChange) {
+            val parentId = removedEntry.returnToEntryId?.takeIf(entries::containsKey)
+            val result =
+                if (parentId != null && resultValue != null) {
+                    mapOf(
+                        "forEntryId" to parentId,
+                        "fromEntryId" to id,
+                        "value" to resultValue,
+                    )
+                } else {
+                    null
+                }
+            publish(reason, result)
+        }
     }
 }

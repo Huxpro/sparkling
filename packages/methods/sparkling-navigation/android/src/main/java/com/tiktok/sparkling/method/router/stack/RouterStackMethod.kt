@@ -27,24 +27,57 @@ class RouterStackMethod : AbsRouterStackMethodIDL() {
                 callback.onFailure(IDLBridgeMethod.FAIL, "Router service not available")
                 return
             }
+        val entries = mutableListOf<RouterStackTarget>()
+        if (commandName == "reset") {
+            params.entries.orEmpty().forEachIndexed { index, entry ->
+                val target = targetFrom(entry)
+                if (target == null) {
+                    callback.onFailure(
+                        IDLBridgeMethod.INVALID_PARAM,
+                        "entries[$index] requires scheme, path, and a valid presentation",
+                    )
+                    return
+                }
+                entries += target
+            }
+            if (entries.isEmpty()) {
+                callback.onFailure(IDLBridgeMethod.INVALID_PARAM, "reset requires entries")
+                return
+            }
+        }
+        val target = targetFrom(params)
+        if (commandName in setOf("push", "replace", "prefetch", "syncOwnLocation") && target == null) {
+            callback.onFailure(IDLBridgeMethod.INVALID_PARAM, "$commandName requires a valid target")
+            return
+        }
+        if (commandName == "popTo" && params.entryId.isNullOrBlank()) {
+            callback.onFailure(IDLBridgeMethod.INVALID_PARAM, "popTo requires entryId")
+            return
+        }
         val command =
             RouterStackCommand(
                 command = commandName,
-                target = targetFrom(params),
+                target = target,
                 entryId = params.entryId,
-                entries = params.entries.orEmpty().mapNotNull(::targetFrom),
+                entries = entries,
                 result = params.result,
                 animated = params.animated ?: true,
                 usePrefetched = params.usePrefetched ?: false,
             )
         val result =
-            runCatching {
+            try {
                 routerDepend.executeStackCommand(
                     getSDKContext(),
                     command,
                     getSDKContext()?.context,
                 )
-            }.getOrNull()
+            } catch (error: Throwable) {
+                callback.onFailure(
+                    IDLBridgeMethod.FAIL,
+                    "Stack command failed: ${error.message ?: error::class.java.simpleName}",
+                )
+                return
+            }
 
         if (result == null) {
             callback.onFailure(IDLBridgeMethod.FAIL, "Stack protocol is not implemented by host")
@@ -55,7 +88,9 @@ class RouterStackMethod : AbsRouterStackMethodIDL() {
             return
         }
         callback.onSuccess(
-            IDLMethodStackResultModel::class.java.createXModel().apply {
+            IDLMethodStackResultModel::class.java.createXModel(
+                getSDKContext()?.containerID,
+            ).apply {
                 entryId = result.entryId
                 state = result.state
             },
@@ -67,12 +102,14 @@ class RouterStackMethod : AbsRouterStackMethodIDL() {
         val scheme =
             params.scheme?.takeIf { it.isNotBlank() }
                 ?: if (params.command == "syncOwnLocation") "" else return null
+        val presentation = params.presentation ?: "push"
+        if (presentation !in setOf("push", "modal")) return null
         return RouterStackTarget(
             path = path,
             search = params.search.orEmpty().mapValues { it.value.toString() },
             bundle = params.bundle.orEmpty(),
             scheme = scheme,
-            presentation = params.presentation ?: "push",
+            presentation = presentation,
         )
     }
 
@@ -85,12 +122,14 @@ class RouterStackMethod : AbsRouterStackMethodIDL() {
                 .mapNotNull { (key, item) ->
                     key?.toString()?.let { it to item.toString() }
                 }.toMap()
+        val presentation = value["presentation"]?.toString() ?: "push"
+        if (presentation !in setOf("push", "modal")) return null
         return RouterStackTarget(
             path = path,
             search = search,
             bundle = value["bundle"]?.toString().orEmpty(),
             scheme = scheme,
-            presentation = value["presentation"]?.toString() ?: "push",
+            presentation = presentation,
         )
     }
 }

@@ -17,6 +17,7 @@ class Sparkling private constructor(
         private const val TAG = "Sparkling"
 
         const val SPARKLING_CONTEXT_CONTAINER_ID = "SparklingContextContainerId"
+        const val SPARKLING_CONTEXT_SCHEME = "SparklingContextScheme"
 
         const val TYPE_PAGE = 1
         const val TYPE_POPUP = 2 // not implemented yet
@@ -49,6 +50,7 @@ class Sparkling private constructor(
             processSparklingContext(sparklingContext)
             val intent = Intent(context, SparklingActivity::class.java)
             intent.putExtra(SPARKLING_CONTEXT_CONTAINER_ID, sparklingContext.containerId)
+            intent.putExtra(SPARKLING_CONTEXT_SCHEME, sparklingContext.scheme)
             if (context !is Activity) {
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -56,6 +58,7 @@ class Sparkling private constructor(
             context.startActivity(intent)
             true
         } catch (e: Exception) {
+            SparklingContextTransferStation.releaseSparklingContext(sparklingContext.containerId)
             Log.e(TAG, "Failed to navigate: ${e.message}")
             false
         }

@@ -13,6 +13,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.tiktok.sparkling.Sparkling.Companion.SPARKLING_CONTEXT_CONTAINER_ID
+import com.tiktok.sparkling.Sparkling.Companion.SPARKLING_CONTEXT_SCHEME
 import com.tiktok.sparkling.hybridkit.utils.ColorUtil
 
 class SparklingActivity : AppCompatActivity() {
@@ -22,12 +23,27 @@ class SparklingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val containerId = intent.getStringExtra(SPARKLING_CONTEXT_CONTAINER_ID)
         sparklingContainerId = containerId
-        val sparklingContext = SparklingContextTransferStation.getSparklingContext(containerId)
-        SparklingNavigationStack.register(this, sparklingContext)
+        val sparklingContext =
+            SparklingContextTransferStation.getSparklingContext(containerId)
+                ?: intent.getStringExtra(SPARKLING_CONTEXT_SCHEME)?.let { scheme ->
+                    SparklingContext().also { restored ->
+                        if (containerId != null) restored.containerId = containerId
+                        restored.scheme = scheme
+                        Sparkling.build(this, restored).processSparklingContext(restored)
+                        SparklingContextTransferStation.saveSparklingContext(restored)
+                    }
+                }
+        if (!SparklingNavigationStack.register(this, sparklingContext)) {
+            SparklingContextTransferStation.releaseSparklingContext(containerId)
+            finish()
+            return
+        }
         initStatusBar(sparklingContext)
         setContentView(R.layout.activity_sparkling)
         initToolBar(sparklingContext)
-        initSparklingFragment(sparklingContext)
+        if (savedInstanceState == null) {
+            initSparklingFragment(sparklingContext)
+        }
     }
 
     private fun initStatusBar(sparklingContext: SparklingContext?) {
@@ -49,15 +65,18 @@ class SparklingActivity : AppCompatActivity() {
 
     fun initToolBar(sparklingContext: SparklingContext?) {
         val customToolbar = sparklingContext?.sparklingUIProvider?.getToolBar(this)
+        val activeToolbar: Toolbar
         if (customToolbar != null) {
             val defaultToolbar = findViewById<Toolbar>(R.id.toolbar)
             val parent = defaultToolbar.parent as? ViewGroup
             parent?.removeView(defaultToolbar)
             parent?.addView(customToolbar, 0)
             setSupportActionBar(customToolbar)
+            activeToolbar = customToolbar
         } else {
             val toolbar = findViewById<Toolbar>(R.id.toolbar)
             setSupportActionBar(toolbar)
+            activeToolbar = toolbar
         }
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -67,11 +86,7 @@ class SparklingActivity : AppCompatActivity() {
         if (!titleColorStr.isNullOrEmpty()) {
             try {
                 val titleColor = Color.parseColor(titleColorStr)
-                val toolbar = (supportActionBar?.customView ?: findViewById<Toolbar>(R.id.toolbar)) as Toolbar
-                toolbar.setTitleTextColor(titleColor)
-
-                val customToolbar = sparklingContext?.sparklingUIProvider?.getToolBar(this)
-                customToolbar?.setTitleTextColor(titleColor)
+                activeToolbar.setTitleTextColor(titleColor)
             } catch (e: IllegalArgumentException) {
             }
         }
@@ -79,14 +94,11 @@ class SparklingActivity : AppCompatActivity() {
         val navBarColorStr = sparklingContext?.hybridSchemeParam?.navBarColor
         if (!navBarColorStr.isNullOrEmpty()) {
             val navBarColor = ColorUtil.parseColorSafely(navBarColorStr)
-            val activeToolbar =
-                sparklingContext?.sparklingUIProvider?.getToolBar(this)
-                    ?: findViewById<Toolbar>(R.id.toolbar)
-            activeToolbar?.setBackgroundColor(navBarColor)
+            activeToolbar.setBackgroundColor(navBarColor)
         }
 
-        ((supportActionBar?.customView ?: findViewById<Toolbar>(R.id.toolbar)) as Toolbar).setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+        activeToolbar.setNavigationOnClickListener {
+            onBackPressed()
         }
     }
 
@@ -118,22 +130,23 @@ class SparklingActivity : AppCompatActivity() {
     private val DOUBLE_CLICK_EXIT_INTERVAL = 2000
 
     override fun onBackPressed() {
-        SparklingNavigationStack.markUserBack(sparklingContainerId)
         if (isTaskRoot) {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastBackPressedTime < DOUBLE_CLICK_EXIT_INTERVAL) {
+                SparklingNavigationStack.markUserBack(sparklingContainerId)
                 super.onBackPressed()
             } else {
                 Toast.makeText(this, getString(R.string.click_again_to_exit), Toast.LENGTH_SHORT).show()
                 lastBackPressedTime = currentTime
             }
         } else {
+            SparklingNavigationStack.markUserBack(sparklingContainerId)
             super.onBackPressed()
         }
     }
 
     override fun onDestroy() {
-        if (!isChangingConfigurations) {
+        if (isFinishing) {
             SparklingNavigationStack.unregister(sparklingContainerId)
             SparklingContextTransferStation.releaseSparklingContext(sparklingContainerId)
         }

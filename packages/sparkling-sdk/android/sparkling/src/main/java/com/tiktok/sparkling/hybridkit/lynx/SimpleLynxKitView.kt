@@ -215,7 +215,7 @@ class SimpleLynxKitView :
         hybridContext.bridge?.release()
         lynxKitLifeCycle?.onDestroy(this)
         GlobalPropsUtils.instance.flushGlobalProps(hybridContext.containerId)
-        KitViewManager.removeKitView(hybridContext.containerId)
+        KitViewManager.removeKitView(hybridContext.containerId, this)
     }
 
     override fun hasDestroyed(): Boolean = hasDestroyed

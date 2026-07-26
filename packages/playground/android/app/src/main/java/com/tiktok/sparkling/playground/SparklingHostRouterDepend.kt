@@ -33,8 +33,9 @@ class SparklingHostRouterDepend : IHostRouterDepend {
                     val k = key?.toString() ?: return@mapNotNull null
                     k to (value?.toString() ?: "")
                 }?.toMap()
-        context?.let { Sparkling.Companion.build(it, sparklingContext).navigate() }
-        return true
+        return context?.let {
+            Sparkling.Companion.build(it, sparklingContext).navigate()
+        } ?: false
     }
 
     override fun closeView(
@@ -43,13 +44,22 @@ class SparklingHostRouterDepend : IHostRouterDepend {
         containerID: String?,
         animated: Boolean?,
     ): Boolean {
+        if (!containerID.isNullOrBlank()) {
+            return SparklingNavigationStack.pop(containerID).success
+        }
+        val currentId = bridgeContext?.containerID
+        if (!currentId.isNullOrBlank() && SparklingNavigationStack.pop(currentId).success) {
+            return true
+        }
         val ownerActivity = bridgeContext?.ownerActivity
         if (ownerActivity != null) {
             ownerActivity.finish()
+            return true
         } else {
-            HybridActivityStackManager.getTopActivity()?.finish()
+            val top = HybridActivityStackManager.getTopActivity() ?: return false
+            top.finish()
+            return true
         }
-        return true
     }
 
     override fun executeStackCommand(
@@ -68,6 +78,7 @@ class SparklingHostRouterDepend : IHostRouterDepend {
                         hostContext,
                         target.toNative(),
                         usePrefetched = command.usePrefetched,
+                        sourceEntryId = bridgeContext?.containerID,
                     )
                 }
                 "pop" ->
@@ -107,7 +118,6 @@ class SparklingHostRouterDepend : IHostRouterDepend {
                         target.path,
                         target.search,
                     )
-                    null
                 }
                 else -> return RouterStackResult(false, "Unknown command: ${command.command}")
             }
