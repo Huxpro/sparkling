@@ -115,7 +115,7 @@ a pure in-view history, or its own mapping.
 | DOM intent | same-page | cross-page |
 | --- | --- | --- |
 | `pushState(state,'',url)` | append virtual entry, update `location`; no event (matches browser) | `host.open(scheme)`; current entry stays — native back returns to it |
-| `replaceState` | replace virtual entry | `host.open(scheme)` then `host.close()` of self (ordering: open first to avoid a blank frame) |
+| `replaceState` | replace virtual entry | `host.open(scheme, { replace: true })` — a replace-capable open (native `OpenOptions.replace`; web shell `history.replaceState`). Not open+close: `close()` pops the just-opened container, which would cancel the nav and loop redirects. |
 | `back()` | cursor>0 ⇒ virtual traverse + `popstate` | cursor==0 ⇒ `host.close()` |
 | `forward()` / `go(+n)` | virtual traverse + `popstate` if a forward entry exists | ❌ no cross-page forward (native stacks have no forward); no-op + dev warning |
 | `location.assign/replace` | n/a — always treated as hard navigation | `host.open` (+ `close` for replace) |
