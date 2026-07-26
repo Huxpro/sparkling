@@ -135,19 +135,12 @@ export function createNavigationShim(
 
   function openCrossPage(scheme: string, state: unknown, replaceSelf: boolean): void {
     const finalScheme = serializeState(state, scheme);
-    void host
-      .open(finalScheme)
-      .then(() => {
-        if (replaceSelf) {
-          // Open first, then remove ourselves from the native stack so the
-          // user never sees a blank frame.
-          return host.close();
-        }
-        return undefined;
-      })
-      .catch((err) => {
-        warn(`host.open failed for ${finalScheme}: ${String(err)}`);
-      });
+    // For replace we ask the host to swap the current container. We do NOT
+    // open-then-close: close() pops the just-opened container, not the old
+    // one, which would cancel the navigation (and, for redirects, loop).
+    void host.open(finalScheme, replaceSelf ? { replace: true } : undefined).catch((err) => {
+      warn(`host.open failed for ${finalScheme}: ${String(err)}`);
+    });
   }
 
   function navigate(state: unknown, url: string | null | undefined, mode: 'push' | 'replace'): void {

@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 import { open, close } from 'sparkling-navigation';
-import type { NavigationHost } from '../types';
+import type { HostOpenOptions, NavigationHost } from '../types';
 import { UrlSearchParamsShim } from '../url';
 
 interface SparklingGlobalProps {
@@ -51,9 +51,12 @@ export function createSparklingHost(baseScheme: string = DEFAULT_BASE_SCHEME): N
   }
 
   return {
-    open(scheme: string): Promise<void> {
+    open(scheme: string, options?: HostOpenOptions): Promise<void> {
       return new Promise((resolve, reject) => {
-        open({ scheme }, (result) => {
+        const request = options?.replace
+          ? { scheme, options: { replace: true } }
+          : { scheme };
+        open(request, (result) => {
           if (result.code === 1) {
             resolve();
           } else {

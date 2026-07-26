@@ -6,6 +6,7 @@ import type { NavigationHost, Resolution, ShimEvent, UrlLike, UrlResolver } from
 
 interface MockHost extends NavigationHost {
   opened: string[];
+  openedReplace: boolean[];
   closed: number;
   fireShow(): void;
 }
@@ -14,9 +15,11 @@ function createMockHost(initialUrl = 'hybrid://lynxview_page?bundle=index.lynx.b
   const showCallbacks: Array<() => void> = [];
   return {
     opened: [],
+    openedReplace: [],
     closed: 0,
-    open(scheme: string) {
+    open(scheme: string, options?: { replace?: boolean }) {
       this.opened.push(scheme);
+      this.openedReplace.push(options?.replace === true);
       return Promise.resolve();
     },
     close() {
@@ -168,13 +171,14 @@ describe('cross-page navigation', () => {
     expect(warnings.some((w) => w.includes('exceeds'))).toBe(true);
   });
 
-  test('cross-page replaceState opens then closes self', async () => {
+  test('cross-page replaceState opens with replace flag (not open+close)', async () => {
     const { shim, host } = setup();
     shim.history.replaceState(null, '', '/other');
     await Promise.resolve();
     await Promise.resolve();
     expect(host.opened).toHaveLength(1);
-    expect(host.closed).toBe(1);
+    expect(host.openedReplace[0]).toBe(true);
+    expect(host.closed).toBe(0);
   });
 
   test('back at the bottom of the virtual stack closes the container', async () => {
@@ -217,13 +221,14 @@ describe('external URLs and hard navigation', () => {
     expect(host.closed).toBe(0);
   });
 
-  test('location.replace closes self after opening', async () => {
+  test('location.replace opens with replace flag (not open+close)', async () => {
     const { shim, host } = setup();
     shim.location.replace('/other/7');
     await Promise.resolve();
     await Promise.resolve();
     expect(host.opened).toHaveLength(1);
-    expect(host.closed).toBe(1);
+    expect(host.openedReplace[0]).toBe(true);
+    expect(host.closed).toBe(0);
   });
 
   test('location.assign same-page uses the resolver-provided scheme (hard reload semantics)', () => {

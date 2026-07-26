@@ -9,9 +9,14 @@
  * system. `sparkling-navigation` implements this on Android, iOS, and the
  * web shell; any other host (or framework) can implement it too.
  */
+export interface HostOpenOptions {
+  /** Replace the current container instead of pushing a new one. */
+  replace?: boolean;
+}
+
 export interface NavigationHost {
   /** Open a new container for `scheme`. Resolves when the host accepted it. */
-  open(scheme: string): Promise<void>;
+  open(scheme: string, options?: HostOpenOptions): Promise<void>;
   /** Pop the current container off the native stack. */
   close(): Promise<void>;
   /** The scheme URL this container was opened with (including query params). */
