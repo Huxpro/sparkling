@@ -49,9 +49,18 @@ registerWebMethod('router.open', (params, callback) => {
             }
         });
 
-        // Push browser history state
+        // Update browser history. `options.replace` swaps the current entry
+        // instead of pushing a new one, matching the native OpenOptions.replace
+        // semantics (e.g. Next.js redirect()/router.replace()).
+        const data = (params.data as Record<string, unknown>) ?? {};
+        const options = (data.options as Record<string, unknown> | undefined) ?? undefined;
+        const replace = options?.replace === true || data.replace === true;
         const state = { page: pageName, scheme };
-        window.history.pushState(state, '', `?${nextParams.toString()}`);
+        if (replace) {
+            window.history.replaceState(state, '', `?${nextParams.toString()}`);
+        } else {
+            window.history.pushState(state, '', `?${nextParams.toString()}`);
+        }
 
         // Dispatch custom event for web shell to swap <lynx-view>
         window.dispatchEvent(new CustomEvent('sparkling:navigate', {
