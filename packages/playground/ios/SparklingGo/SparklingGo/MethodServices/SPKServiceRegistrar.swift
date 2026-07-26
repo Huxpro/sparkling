@@ -16,6 +16,9 @@ enum SPKServiceRegister {
         DIProviderRegistry.provider.pipeShared().register(RouterService.self) {
             RouterServiceImpl()
         }
+        DIProviderRegistry.provider.pipeShared().register(RouterStackService.self) {
+            RouterServiceImpl()
+        }
 
         DIProviderRegistry.provider.pipeShared().register(StorageService.self) {
             StorageServiceImpl()

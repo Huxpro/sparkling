@@ -227,6 +227,7 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
     var statusBarHiddenStatus: Bool = false
 
     var _willDestory: Bool = false
+    var pendingStackRemovalReason: SPKStackChangeReason?
 
     var hasExecuteDidAppearedOnce: Bool = false
     var isInBackground: Bool = false
@@ -373,6 +374,7 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
 
         self.handleViewDidAppear()
         self.hasExecuteDidAppearedOnce = true
+        SPKNavigationStack.shared.registerIfNeeded(self)
         self.containerLifecycleDelegate?.containerViewDidAppear?(self)
     }
 
@@ -384,8 +386,18 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
     ///
     /// - Parameter animated: Whether the disappearance is animated
     public override func viewWillDisappear(_ animated: Bool) {
+        if self.isMovingFromParent
+            || self.isBeingDismissed
+            || self.navigationController?.isBeingDismissed == true
+        {
+            self.pendingStackRemovalReason =
+                self.transitionCoordinator?.isInteractive == true
+                ? .userBackGesture
+                : .system
+        }
         self.transitionCoordinator?.notifyWhenInteractionChanges { [weak self] context in
             if context.isCancelled {
+                self?.pendingStackRemovalReason = nil
                 return
             }
             self?.send(
@@ -419,6 +431,14 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
         super.viewDidDisappear(animated)
         self.resetStatusBarStyle()
         self.resetNavigationBarStyle()
+
+        if let reason = self.pendingStackRemovalReason {
+            SPKNavigationStack.shared.didRemove(
+                containerID: self.containerID,
+                reason: reason
+            )
+            self.pendingStackRemovalReason = nil
+        }
 
         if self.navigationController != nil {
             self._willDestory = false
@@ -597,6 +617,15 @@ open class SPKViewController: UIViewController, SPKContainerProtocol {
                 SPKEvent.Common.containerIdKey: self.containerID,
                 SPKEvent.Back.actionFromKey: SPKEvent.Back.actionTypeNavBarBackPress,
             ])
+
+        let stackResult = SPKNavigationStack.shared.pop(
+            entryId: self.containerID,
+            animated: true,
+            reason: .userBackButton
+        )
+        if stackResult.success {
+            return
+        }
 
         if self.navigationController?.viewControllers.count ?? 0 > 1 {
             //MARK: currently only support lynx

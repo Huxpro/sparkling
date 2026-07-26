@@ -7,6 +7,15 @@ import SparklingMethod
 
 extension SPKRouter {
     public static func close(container: PipeContainer?) -> Bool {
+        if let containerID = container?.spk_containerID,
+            !containerID.isEmpty,
+            SPKNavigationStack.shared.pop(
+                entryId: containerID,
+                animated: true
+            ).success
+        {
+            return true
+        }
         guard let uiResponder = container as? UIResponder else {
             return false
         }
@@ -34,6 +43,16 @@ extension SPKRouter {
             targetVC.dismiss(animated: true)
         }
         return true
+    }
+
+    public static func close(
+        containerID: String,
+        animated: Bool = true
+    ) -> Bool {
+        return SPKNavigationStack.shared.pop(
+            entryId: containerID,
+            animated: animated
+        ).success
     }
 
     public static func viewController(for responder: UIResponder) -> UIViewController? {

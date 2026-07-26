@@ -9,7 +9,16 @@ import Sparkling_Router
 
 class RouterServiceImpl: RouterService {
     func closeContainer(withParams params: Sparkling_Router.CloseMethodParamModel, completion: @escaping SparklingMethod.PipeMethod.CompletionBlock) {
-        if SPKRouter.close(container: params.context?.pipeContainer) {
+        let success: Bool
+        if let containerID = params.containerID, !containerID.isEmpty {
+            success = SPKRouter.close(
+                containerID: containerID,
+                animated: params.animated
+            )
+        } else {
+            success = SPKRouter.close(container: params.context?.pipeContainer)
+        }
+        if success {
             completion(.succeeded(), nil)
         } else {
             completion(.failed(message: "Unable to close the container"), nil)
@@ -22,7 +31,12 @@ class RouterServiceImpl: RouterService {
 
         DispatchQueue.main.async {
             func openWithRouter(completionHandler: ((Bool) -> Void)? = nil) {
-                if let (_, success) = SPKRouter.open(withURL: urlString, context: context), success {
+                if let (_, success) = SPKRouter.open(
+                    withURL: urlString,
+                    context: context,
+                    presentation: "push",
+                    animated: params.animated
+                ), success {
                     completionHandler?(true)
                     completion(.succeeded(), nil)
                 } else {

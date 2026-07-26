@@ -64,9 +64,11 @@ class SPKResponder: NSObject {
     }
 
     static func isTopViewController(viewController: UIViewController?) -> Bool {
-        guard let topViewController = topViewController else {
+        guard let viewController = viewController,
+            let topViewController = topViewController
+        else {
             return false
         }
-        return self.topViewController == topViewController
+        return viewController === topViewController
     }
 }
