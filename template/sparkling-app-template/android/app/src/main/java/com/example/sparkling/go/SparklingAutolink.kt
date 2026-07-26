@@ -18,6 +18,7 @@ object SparklingAutolink {
                     listOf(
                         "com.tiktok.sparkling.method.router.open.RouterOpenMethod",
                         "com.tiktok.sparkling.method.router.close.RouterCloseMethod",
+                        "com.tiktok.sparkling.method.router.stack.RouterStackMethod",
                     ),
             ),
         )

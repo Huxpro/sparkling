@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 package com.tiktok.sparkling
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -48,7 +49,9 @@ class Sparkling private constructor(
             processSparklingContext(sparklingContext)
             val intent = Intent(context, SparklingActivity::class.java)
             intent.putExtra(SPARKLING_CONTEXT_CONTAINER_ID, sparklingContext.containerId)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            if (context !is Activity) {
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
             SparklingContextTransferStation.saveSparklingContext(sparklingContext)
             context.startActivity(intent)
             true

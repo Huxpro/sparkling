@@ -6,10 +6,15 @@ package com.tiktok.sparkling.playground
 import android.content.Context
 import com.tiktok.sparkling.Sparkling
 import com.tiktok.sparkling.SparklingContext
+import com.tiktok.sparkling.SparklingNavigationStack
+import com.tiktok.sparkling.SparklingNavigationTarget
 import com.tiktok.sparkling.hybridkit.service.HybridActivityStackManager
 import com.tiktok.sparkling.method.registry.core.IBridgeContext
 import com.tiktok.sparkling.method.registry.core.BridgePlatformType
 import com.tiktok.sparkling.method.router.utils.IHostRouterDepend
+import com.tiktok.sparkling.method.router.utils.RouterStackCommand
+import com.tiktok.sparkling.method.router.utils.RouterStackResult
+import com.tiktok.sparkling.method.router.utils.RouterStackTarget
 
 class SparklingHostRouterDepend : IHostRouterDepend {
     override fun openScheme(
@@ -46,4 +51,80 @@ class SparklingHostRouterDepend : IHostRouterDepend {
         }
         return true
     }
+
+    override fun executeStackCommand(
+        bridgeContext: IBridgeContext?,
+        command: RouterStackCommand,
+        context: Context?,
+    ): RouterStackResult? {
+        val appContext = context ?: bridgeContext?.context
+        val response =
+            when (command.command) {
+                "getState" -> null
+                "push" -> {
+                    val target = command.target ?: return RouterStackResult(false, "push requires a target")
+                    val hostContext = appContext ?: return RouterStackResult(false, "Context not available")
+                    SparklingNavigationStack.push(
+                        hostContext,
+                        target.toNative(),
+                        usePrefetched = command.usePrefetched,
+                    )
+                }
+                "pop" ->
+                    SparklingNavigationStack.pop(
+                        bridgeContext?.containerID,
+                        result = command.result,
+                    )
+                "popTo" -> {
+                    val entryId = command.entryId ?: return RouterStackResult(false, "popTo requires entryId")
+                    SparklingNavigationStack.popTo(entryId)
+                }
+                "replace" -> {
+                    val target = command.target ?: return RouterStackResult(false, "replace requires a target")
+                    val hostContext = appContext ?: return RouterStackResult(false, "Context not available")
+                    SparklingNavigationStack.replace(
+                        hostContext,
+                        bridgeContext?.containerID,
+                        target.toNative(),
+                    )
+                }
+                "reset" -> {
+                    val hostContext = appContext ?: return RouterStackResult(false, "Context not available")
+                    SparklingNavigationStack.reset(
+                        hostContext,
+                        command.entries.map { it.toNative() },
+                    )
+                }
+                "prefetch" -> {
+                    val target = command.target ?: return RouterStackResult(false, "prefetch requires a target")
+                    val hostContext = appContext ?: return RouterStackResult(false, "Context not available")
+                    SparklingNavigationStack.prefetch(hostContext, target.toNative())
+                }
+                "syncOwnLocation" -> {
+                    val target = command.target ?: return RouterStackResult(false, "syncOwnLocation requires a location")
+                    SparklingNavigationStack.syncOwnLocation(
+                        bridgeContext?.containerID,
+                        target.path,
+                        target.search,
+                    )
+                    null
+                }
+                else -> return RouterStackResult(false, "Unknown command: ${command.command}")
+            }
+        return RouterStackResult(
+            success = response?.success ?: true,
+            message = response?.message ?: "ok",
+            entryId = response?.entryId,
+            state = SparklingNavigationStack.stateMap(),
+        )
+    }
+
+    private fun RouterStackTarget.toNative(): SparklingNavigationTarget =
+        SparklingNavigationTarget(
+            path = path,
+            search = search,
+            bundle = bundle,
+            scheme = scheme,
+            presentation = presentation,
+        )
 }

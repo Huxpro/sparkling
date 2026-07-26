@@ -16,10 +16,14 @@ import com.tiktok.sparkling.Sparkling.Companion.SPARKLING_CONTEXT_CONTAINER_ID
 import com.tiktok.sparkling.hybridkit.utils.ColorUtil
 
 class SparklingActivity : AppCompatActivity() {
+    private var sparklingContainerId: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val containerId = intent.getStringExtra(SPARKLING_CONTEXT_CONTAINER_ID)
+        sparklingContainerId = containerId
         val sparklingContext = SparklingContextTransferStation.getSparklingContext(containerId)
+        SparklingNavigationStack.register(this, sparklingContext)
         initStatusBar(sparklingContext)
         setContentView(R.layout.activity_sparkling)
         initToolBar(sparklingContext)
@@ -114,6 +118,7 @@ class SparklingActivity : AppCompatActivity() {
     private val DOUBLE_CLICK_EXIT_INTERVAL = 2000
 
     override fun onBackPressed() {
+        SparklingNavigationStack.markUserBack(sparklingContainerId)
         if (isTaskRoot) {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastBackPressedTime < DOUBLE_CLICK_EXIT_INTERVAL) {
@@ -125,5 +130,13 @@ class SparklingActivity : AppCompatActivity() {
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onDestroy() {
+        if (!isChangingConfigurations) {
+            SparklingNavigationStack.unregister(sparklingContainerId)
+            SparklingContextTransferStation.releaseSparklingContext(sparklingContainerId)
+        }
+        super.onDestroy()
     }
 }
