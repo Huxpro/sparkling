@@ -18,20 +18,16 @@ import {
     Generator,
     getConfig,
 } from '@tanstack/router-generator';
+import type {
+    VirtualRootRoute,
+    VirtualRouteNode,
+} from '@tanstack/virtual-file-routes';
 import { scanSparklingRoutes } from './scanner';
 import type {
     GeneratedSparklingRoutes,
     ScannedContainer,
     SparklingRouterPluginOptions,
 } from './types';
-
-interface VirtualRouteNode {
-    type: 'index' | 'layout' | 'route';
-    file?: string;
-    id?: string;
-    path?: string;
-    children?: VirtualRouteNode[];
-}
 
 interface RouteTreeNode {
     segment: string;
@@ -103,11 +99,7 @@ function buildVirtualRoute(
 function virtualConfig(
     container: ScannedContainer,
     rootRouteFile: string,
-): {
-    type: 'root';
-    file: string;
-    children: VirtualRouteNode[];
-} {
+): VirtualRootRoute {
     const root = createNode('');
     container.routes.forEach((route) => {
         const node = insertRoute(root, route.routeSegments);

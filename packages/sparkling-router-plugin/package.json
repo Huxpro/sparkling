@@ -27,7 +27,8 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@tanstack/router-generator": "1.167.21"
+    "@tanstack/router-generator": "1.167.21",
+    "@tanstack/virtual-file-routes": "^1.162.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
