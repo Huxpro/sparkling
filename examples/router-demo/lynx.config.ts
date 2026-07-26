@@ -29,6 +29,14 @@ export default defineConfig({
         path.dirname(fileURLToPath(import.meta.url)),
         'src/react-lynx-shim.ts',
       ),
+      'react-dom$': path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        'src/shims/react-dom.ts',
+      ),
+      // Critical for TanStack UI re-renders on ReactLynx / Lynx Web.
+      'use-sync-external-store/shim/with-selector$':
+        '@lynx-js/use-sync-external-store/shim/with-selector',
+      'use-sync-external-store/shim$': '@lynx-js/use-sync-external-store/shim',
     },
   },
   output: {

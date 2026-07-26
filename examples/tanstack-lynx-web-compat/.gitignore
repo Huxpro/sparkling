@@ -1,0 +1,6 @@
+dist/
+harness-dist/
+artifacts/
+test-results/
+playwright-report/
+node_modules/
