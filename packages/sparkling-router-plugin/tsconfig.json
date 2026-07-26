@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "dist",
+    "module": "CommonJS",
     "noEmit": false
   },
   "include": ["index.ts", "src/**/*.ts"],

@@ -2,30 +2,11 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+import type { RsbuildPlugin } from '@rsbuild/core';
 import { generateSparklingRoutes } from './generator';
 import type { SparklingRouterPluginOptions } from './types';
 
-interface RsbuildConfigLike {
-    source?: {
-        entry?: Record<string, string>;
-        alias?: Record<string, string>;
-    };
-}
-
-interface RsbuildPluginApiLike {
-    context: {
-        rootPath: string;
-    };
-    modifyRsbuildConfig(
-        callback: (config: RsbuildConfigLike) => RsbuildConfigLike | void,
-    ): void;
-}
-
-export interface SparklingRouterRsbuildPlugin {
-    name: string;
-    enforce: 'pre';
-    setup(api: RsbuildPluginApiLike): Promise<void>;
-}
+export type SparklingRouterRsbuildPlugin = RsbuildPlugin;
 
 export function pluginSparklingRouter(
     options: SparklingRouterPluginOptions = {},
@@ -35,17 +16,20 @@ export function pluginSparklingRouter(
         enforce: 'pre',
         async setup(api) {
             const generated = await generateSparklingRoutes(api.context.rootPath, options);
-            api.modifyRsbuildConfig((config) => {
-                config.source ??= {};
-                config.source.entry = {
-                    ...(config.source.entry ?? {}),
-                    ...generated.entries,
-                };
-                config.source.alias = {
-                    ...(config.source.alias ?? {}),
-                    'react$': '@lynx-js/react/compat',
-                };
-                return config;
+            api.modifyRsbuildConfig((config, { mergeRsbuildConfig }) => {
+                return mergeRsbuildConfig(config, {
+                    source: {
+                        entry: generated.entries,
+                    },
+                    resolve: {
+                        alias: {
+                            'react$': '@lynx-js/react/compat',
+                            'react/jsx-runtime$': '@lynx-js/react/jsx-runtime',
+                            'react/jsx-dev-runtime$': '@lynx-js/react/jsx-dev-runtime',
+                            'react-dom$': 'sparkling-router/react-dom-shim',
+                        },
+                    },
+                });
             });
         },
     };

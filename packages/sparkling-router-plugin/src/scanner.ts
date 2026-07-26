@@ -39,13 +39,22 @@ async function routeFiles(directory: string): Promise<string[]> {
     const result: string[] = [];
     const entries = await readdir(directory, { withFileTypes: true });
     for (const entry of entries) {
-        if (entry.name === '.sparkling-router' || entry.name === 'node_modules') {
+        if (
+            entry.name === '.sparkling-router'
+            || entry.name === 'node_modules'
+            || entry.name.startsWith('.')
+        ) {
             continue;
         }
         const path = join(directory, entry.name);
         if (entry.isDirectory()) {
             result.push(...await routeFiles(path));
-        } else if (ROUTE_EXTENSIONS.has(extname(entry.name))) {
+        } else if (
+            ROUTE_EXTENSIONS.has(extname(entry.name))
+            && !entry.name.startsWith('-')
+            && !/\.d\.[cm]?[jt]sx?$/.test(entry.name)
+            && !/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(entry.name)
+        ) {
             result.push(path);
         }
     }
@@ -62,6 +71,12 @@ function routeTokens(relativePath: string): string[] {
         .flatMap((segment) => segment.split('.'));
 }
 
+function isContainerBoundary(relativePath: string): boolean {
+    return /^_container(?:\.modal)?$/.test(
+        basename(withoutExtension(relativePath)),
+    );
+}
+
 function isPathless(token: string): boolean {
     return (
         (token.startsWith('(') && token.endsWith(')'))
@@ -70,9 +85,12 @@ function isPathless(token: string): boolean {
 }
 
 function toRoute(relativePath: string): ScannedRoute | null {
+    if (isContainerBoundary(relativePath)) {
+        return null;
+    }
     const tokens = routeTokens(relativePath);
     const finalToken = tokens[tokens.length - 1];
-    if (finalToken === '__root' || finalToken.startsWith('_container')) {
+    if (finalToken === '__root') {
         return null;
     }
     if (ROUTE_PIECE_SUFFIXES.has(finalToken)) {
@@ -175,7 +193,7 @@ export async function scanSparklingRoutes(
 
     const boundaries = new Map<string, string>();
     relativeFiles.forEach((path, index) => {
-        if (/^_container(?:\.modal)?$/.test(basename(withoutExtension(path)))) {
+        if (isContainerBoundary(path)) {
             const directory = portable(dirname(path));
             boundaries.set(directory === '.' ? '' : directory, files[index]);
         }

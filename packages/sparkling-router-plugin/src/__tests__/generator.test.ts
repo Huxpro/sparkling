@@ -7,6 +7,7 @@ import {
 } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { mergeRsbuildConfig } from '@rsbuild/core';
 import { generateSparklingRoutes } from '../generator';
 import { pluginSparklingRouter } from '../plugin';
 import { scanSparklingRoutes } from '../scanner';
@@ -51,6 +52,8 @@ export const Route = createFileRoute('/feed/$postId')({ component: () => null })
 import { createFileRoute } from '@tanstack/react-router'
 export const Route = createFileRoute('/settings/')({ component: () => null })
 `);
+  await route('settings/-utils.ts', `export const helper = true`);
+  await route('settings/view.test.tsx', `throw new Error('not a route')`);
   await route('user.$id.tsx', `
 import { createFileRoute } from '@tanstack/react-router'
 export const Route = createFileRoute('/user/$id')({ component: () => null })
@@ -80,6 +83,9 @@ describe('scanSparklingRoutes', () => {
       '/feed',
     ]);
     expect(result.containers[2].presentation).toBe('modal');
+    expect(result.containers[2].routes.map((item) => item.routePath)).toEqual([
+      '/settings',
+    ]);
   });
 });
 
@@ -109,23 +115,32 @@ describe('generateSparklingRoutes', () => {
 describe('pluginSparklingRouter', () => {
   it('injects generated entries and the ReactLynx compat alias', async () => {
     const plugin = pluginSparklingRouter();
-    let modify: ((config: Record<string, unknown>) => void) | undefined;
+    let modify: ((
+      config: Record<string, unknown>,
+      utils: { mergeRsbuildConfig: typeof mergeRsbuildConfig },
+    ) => Record<string, unknown> | void) | undefined;
 
     await plugin.setup({
       context: { rootPath: root },
       modifyRsbuildConfig(callback) {
         modify = callback as typeof modify;
       },
-    });
+    } as never);
 
     const config: {
       source?: {
         entry?: Record<string, string>;
-        alias?: Record<string, string>;
       };
+      resolve?: { alias?: Record<string, string> };
     } = {};
-    modify?.(config as Record<string, unknown>);
-    expect(config.source?.entry?.feed).toContain('entry.tsx');
-    expect(config.source?.alias?.['react$']).toBe('@lynx-js/react/compat');
+    const modified = modify?.(
+      config as Record<string, unknown>,
+      { mergeRsbuildConfig },
+    ) as typeof config | undefined;
+    expect(modified?.source?.entry?.feed).toContain('entry.tsx');
+    expect(modified?.resolve?.alias?.['react$']).toBe('@lynx-js/react/compat');
+    expect(modified?.resolve?.alias?.['react-dom$']).toBe(
+      'sparkling-router/react-dom-shim',
+    );
   });
 });
