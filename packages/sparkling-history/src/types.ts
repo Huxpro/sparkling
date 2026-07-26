@@ -106,6 +106,13 @@ export interface MpaHistory {
 export interface PageTarget {
   id: string;
   /**
+   * How the destination container is presented. `push` (default) stacks a
+   * full page; `modal` presents over the current one. Transported to the
+   * host; native support is part of the stack-protocol work — hosts without
+   * it treat every open as `push`.
+   */
+  presentation?: 'push' | 'modal';
+  /**
    * Static container configuration resolved *before* the target page's JS
    * boots (title, nav bar, orientation, ... — sparkling scheme params).
    */

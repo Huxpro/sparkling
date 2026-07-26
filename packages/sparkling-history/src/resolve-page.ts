@@ -12,6 +12,8 @@ export interface PageManifestEntry {
    * by a more specific page).
    */
   paths: Array<string>;
+  /** Container presentation. Omitted = `push`. See {@link PageTarget}. */
+  presentation?: 'push' | 'modal';
   /** Static container config applied when opening this page. */
   containerParams?: Record<string, string>;
   /**
@@ -25,9 +27,22 @@ export interface PageManifestEntry {
 /**
  * A file-based route manifest: the pre-generated metadata that connects
  * routes (which live in separate JS contexts and cannot share memory) to
- * native pages. This is the artifact a codegen step would emit.
+ * native pages. This is the artifact the codegen step emits (schema v1).
+ *
+ * The manifest is the JS↔native contract: it must stay serializable so the
+ * native side (and other frontends) can consume the same file.
  */
 export interface PageManifest {
+  /**
+   * Manifest schema version. Omitted = pre-v1 (accepted; treated as v1).
+   * Consumers must reject versions they do not understand rather than guess.
+   */
+  version?: 1;
+  /** Scheme configuration for hosts that open pages via URL schemes. */
+  scheme?: {
+    /** Base scheme for page opens, e.g. `hybrid://lynxview_page`. */
+    base: string;
+  };
   pages: Array<PageManifestEntry>;
 }
 
@@ -92,6 +107,7 @@ export function createManifestPageResolver(manifest: PageManifest): PageResolver
     // Same page → in-page transition.
     if (currentPage && destPage.id === currentPage.id) return null;
     const target: PageTarget = { id: destPage.id };
+    if (destPage.presentation) target.presentation = destPage.presentation;
     if (destPage.containerParams) target.containerParams = destPage.containerParams;
     return target;
   };

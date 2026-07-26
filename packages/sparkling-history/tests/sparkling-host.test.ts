@@ -58,6 +58,31 @@ describe('createSparklingHost', () => {
     expect(JSON.parse(url.searchParams.get('__mpa_state')!)).toEqual({ scrollTo: 10 });
   });
 
+  test('manifest v1 presentation is encoded into the scheme (modal only)', () => {
+    const navigation = fakeNavigation();
+    const host = createSparklingHost({ navigation, getQueryItems: () => ({}) });
+    const v1: PageManifest = {
+      version: 1,
+      scheme: { base: 'hybrid://lynxview_page' },
+      pages: [
+        { id: 'main', paths: ['/'] },
+        { id: 'settings', paths: ['/settings'], presentation: 'modal' },
+      ],
+    };
+    const history = createMpaHistory({ host, resolvePage: createManifestPageResolver(v1) });
+    history.push('/settings');
+    const url = new URL(navigation.openCalls[0]!.scheme);
+    expect(url.searchParams.get('presentation')).toBe('modal');
+    // push (the default) is never encoded — absence means push.
+    const history2 = createMpaHistory({
+      host: createSparklingHost({ navigation, getQueryItems: () => ({}) }),
+      resolvePage: createManifestPageResolver(manifest),
+    });
+    history2.push('/detail/1');
+    const url2 = new URL(navigation.openCalls[1]!.scheme);
+    expect(url2.searchParams.get('presentation')).toBeNull();
+  });
+
   test('replace passes options.replace to sparkling open (animated by default)', () => {
     const navigation = fakeNavigation();
     const host = createSparklingHost({ navigation, getQueryItems: () => ({}) });

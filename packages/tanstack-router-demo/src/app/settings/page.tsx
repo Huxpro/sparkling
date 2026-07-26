@@ -1,22 +1,17 @@
 // Copyright (c) 2026 TikTok Pte. Ltd.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { Screen, NavButton } from '../ui.js';
+import { useRouter } from '@tanstack/react-router';
+import { Screen, NavButton } from '../../ui.js';
 
-// MPA extension: its own native page, presented modally (manifest v1
-// `presentation` — native support pending, containers fall back to push).
-export const page = {
+// Native-page boundary: its own native page, presented modally.
+export const container = {
   id: 'settings',
   presentation: 'modal',
   containerParams: { title: 'Settings' },
 };
 
-export const Route = createFileRoute('/settings')({
-  component: SettingsPage,
-});
-
-function SettingsPage() {
+export default function SettingsPage() {
   const router = useRouter();
   return (
     <Screen title="Settings" accent="#fbbf24">

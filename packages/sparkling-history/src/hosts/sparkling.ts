@@ -126,6 +126,13 @@ export function createSparklingHost(options: SparklingHostOptions): NavigationHo
   function buildScheme(target: HostOpenTarget, depth: number): string {
     const pairs: Array<[string, string]> = [['bundle', bundleForPage(target.page.id)]];
 
+    // Container presentation (manifest v1). Transported as a scheme param;
+    // the native container decides what `modal` means. Pending native
+    // support, containers that don't understand it fall back to push.
+    if (target.page.presentation && target.page.presentation !== 'push') {
+      pairs.push(['presentation', target.page.presentation]);
+    }
+
     // Static container config resolved before the page boots.
     for (const [key, value] of Object.entries(target.page.containerParams ?? {})) {
       pairs.push([key, value]);

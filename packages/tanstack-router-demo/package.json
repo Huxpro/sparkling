@@ -14,7 +14,7 @@
     "build": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-history build && pnpm codegen && rspeedy build",
     "build:web": "pnpm -C ../.. --filter sparkling-method --filter sparkling-navigation --filter sparkling-history build && rspeedy build --config lynx.web.config.ts",
     "dev": "pnpm codegen && rspeedy dev",
-    "pretest": "pnpm codegen",
+    "pretest": "pnpm -C ../.. --filter sparkling-history build && pnpm codegen",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
