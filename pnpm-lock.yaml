@@ -226,10 +226,10 @@ importers:
         version: 29.5.14
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.19.17)(ts-node@10.9.2(@types/node@22.19.17)(typescript@5.9.3))
+        version: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.9.3))
       ts-jest:
         specifier: ^29.1.2
-        version: 29.4.9(@babel/core@7.29.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@22.19.17)(ts-node@10.9.2(@types/node@22.19.17)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.9(@babel/core@7.29.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.9.3)))(typescript@5.9.3)
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -288,6 +288,37 @@ importers:
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.19.17)(typescript@5.9.3)
+
+  packages/sparkling-next-router:
+    dependencies:
+      sparkling-history-shim:
+        specifier: workspace:*
+        version: link:../sparkling-history-shim
+      sparkling-navigation:
+        specifier: '*'
+        version: link:../methods/sparkling-navigation
+    devDependencies:
+      '@lynx-js/react':
+        specifier: ^0.116.2
+        version: 0.116.5(@lynx-js/types@3.7.0)(@types/react@19.2.14)
+      '@lynx-js/types':
+        specifier: 3.7.0
+        version: 3.7.0
+      '@types/jest':
+        specifier: ^29.5.12
+        version: 29.5.14
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@22.19.17)(ts-node@10.9.2(@types/node@22.19.17)(typescript@5.9.3))
+      ts-jest:
+        specifier: ^29.1.2
+        version: 29.4.9(@babel/core@7.29.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@22.19.17)(ts-node@10.9.2(@types/node@22.19.17)(typescript@5.9.3)))(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
 
   packages/sparkling-sdk: {}
 
@@ -6237,6 +6268,13 @@ snapshots:
   '@lynx-js/react@0.116.5(@lynx-js/types@3.7.0)(@types/react@18.3.28)':
     dependencies:
       '@types/react': 18.3.28
+      preact: '@hongzhiyuan/preact@10.28.0-fc4af453'
+    optionalDependencies:
+      '@lynx-js/types': 3.7.0
+
+  '@lynx-js/react@0.116.5(@lynx-js/types@3.7.0)(@types/react@19.2.14)':
+    dependencies:
+      '@types/react': 19.2.14
       preact: '@hongzhiyuan/preact@10.28.0-fc4af453'
     optionalDependencies:
       '@lynx-js/types': 3.7.0
