@@ -12,6 +12,10 @@ output_resource/
 **/doc_build
 **/*.lynx.bundle
 
+# Playground: copied build artifacts (bundles are covered above; static assets are not)
+packages/playground/android/app/src/main/assets/static/
+packages/playground/ios/LynxResources/static/
+
 docs/**/*.html
 
 # IDE
