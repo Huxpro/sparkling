@@ -116,4 +116,24 @@ class SPKRouterTest: XCTestCase {
         XCTAssertNotNil(model.extra)
         XCTAssertEqual(model.extra?["foo"] as? String, "bar")
     }
+
+    func testStackMethodModelsAndMapping() throws {
+        let method = StackMethod()
+        XCTAssertEqual(method.methodName, "router.stack")
+        XCTAssertTrue(method.paramsModelClass is StackMethodParamModel.Type)
+        XCTAssertTrue(method.resultModelClass is StackMethodResultModel.Type)
+
+        let model = try XCTUnwrap(try StackMethodParamModel.from(dict: [
+            "command": "push",
+            "path": "/feed/42",
+            "search": ["sort": "new"],
+            "bundle": "feed.lynx.bundle",
+            "scheme": "hybrid://lynxview_page?bundle=feed.lynx.bundle",
+            "presentation": "push",
+        ]))
+        XCTAssertEqual(model.command, "push")
+        XCTAssertEqual(model.path, "/feed/42")
+        XCTAssertEqual(model.search?["sort"] as? String, "new")
+        XCTAssertEqual(model.bundle, "feed.lynx.bundle")
+    }
 }

@@ -9,8 +9,11 @@ import com.tiktok.sparkling.method.router.close.AbsRouterCloseMethodIDL
 import com.tiktok.sparkling.method.router.close.RouterCloseMethod
 import com.tiktok.sparkling.method.router.open.AbsRouterOpenMethodIDL
 import com.tiktok.sparkling.method.router.open.RouterOpenMethod
+import com.tiktok.sparkling.method.router.stack.AbsRouterStackMethodIDL
+import com.tiktok.sparkling.method.router.stack.RouterStackMethod
 import com.tiktok.sparkling.method.router.utils.IHostRouterDepend
 import com.tiktok.sparkling.method.router.utils.RouterProvider
+import com.tiktok.sparkling.method.router.utils.RouterStackResult
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -146,6 +149,43 @@ class RouterMethodUnitTest {
         }
     }
 
+    @Test
+    fun stackMethodReturnsNativeSnapshot() {
+        val hostRouter = mockk<IHostRouterDepend>(relaxed = true)
+        every {
+            hostRouter.executeStackCommand(any(), any(), any())
+        } returns
+            RouterStackResult(
+                success = true,
+                message = "ok",
+                entryId = "entry-2",
+                state = mapOf("version" to 2, "entries" to emptyList<Any>()),
+            )
+        RouterProvider.hostRouterDepend = hostRouter
+
+        val method = RouterStackMethod().apply { setBridgeContext(bridgeContext) }
+        val params = mockk<AbsRouterStackMethodIDL.IDLMethodStackParamModel>(relaxed = true)
+        every { params.command } returns "push"
+        every { params.path } returns "/feed"
+        every { params.scheme } returns "hybrid://lynxview_page?bundle=feed.lynx.bundle"
+        every { params.bundle } returns "feed.lynx.bundle"
+        every { params.search } returns mapOf("sort" to "new")
+        every { params.entries } returns null
+
+        val callback = StackCallbackRecorder()
+        method.handle(params, callback, BridgePlatformType.LYNX)
+
+        assertEquals("entry-2", callback.successResult?.entryId)
+        assertEquals(2, callback.successResult?.state?.get("version"))
+        verify(exactly = 1) {
+            hostRouter.executeStackCommand(
+                bridgeContext,
+                match { it.command == "push" && it.target?.path == "/feed" },
+                context,
+            )
+        }
+    }
+
     private class OpenCallbackRecorder : CompletionBlock<AbsRouterOpenMethodIDL.IDLMethodOpenResultModel> {
         var successResult: AbsRouterOpenMethodIDL.IDLMethodOpenResultModel? = null
         var failureCode: Int? = null
@@ -192,5 +232,27 @@ class RouterMethodUnitTest {
         }
 
         override fun onRawSuccess(data: AbsRouterCloseMethodIDL.IDLMethodCloseResultModel?) = Unit
+    }
+
+    private class StackCallbackRecorder : CompletionBlock<AbsRouterStackMethodIDL.IDLMethodStackResultModel> {
+        var successResult: AbsRouterStackMethodIDL.IDLMethodStackResultModel? = null
+        var failureCode: Int? = null
+
+        override fun onSuccess(
+            result: AbsRouterStackMethodIDL.IDLMethodStackResultModel,
+            msg: String,
+        ) {
+            successResult = result
+        }
+
+        override fun onFailure(
+            code: Int,
+            msg: String,
+            data: AbsRouterStackMethodIDL.IDLMethodStackResultModel?,
+        ) {
+            failureCode = code
+        }
+
+        override fun onRawSuccess(data: AbsRouterStackMethodIDL.IDLMethodStackResultModel?) = Unit
     }
 }

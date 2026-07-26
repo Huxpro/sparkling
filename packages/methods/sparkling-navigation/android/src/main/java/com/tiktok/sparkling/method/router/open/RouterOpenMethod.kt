@@ -72,11 +72,14 @@ class RouterOpenMethod : AbsRouterOpenMethodIDL() {
 
         val replace = params.replace ?: false
         val useSysBrowser = params.useSysBrowser ?: false
+        val animated = params.animated ?: false
         val extra = params.extra
 
         val extraInfo =
             mutableMapOf<String, Any>(
                 "useSysBrowser" to useSysBrowser,
+                "animated" to animated,
+                "interceptor" to (params.interceptor ?: ""),
                 "extra" to (extra ?: emptyMap<Any, Any>()),
             )
 
@@ -103,20 +106,20 @@ class RouterOpenMethod : AbsRouterOpenMethodIDL() {
             try {
                 when (replaceType) {
                     ReplaceType.alwaysCloseBeforeOpen -> {
-                        routerDepend.closeView(getSDKContext(), type)
+                        routerDepend.closeView(getSDKContext(), type, animated = animated)
                         routerDepend.openScheme(getSDKContext(), scheme, extraInfo, type, context = context)
                     }
 
                     ReplaceType.alwaysCloseAfterOpen -> {
                         val opened = routerDepend.openScheme(getSDKContext(), scheme, extraInfo, type, context = context)
-                        routerDepend.closeView(getSDKContext(), type)
+                        routerDepend.closeView(getSDKContext(), type, animated = animated)
                         opened
                     }
 
                     ReplaceType.onlyCloseAfterOpenSucceed -> {
                         val opened = routerDepend.openScheme(getSDKContext(), scheme, extraInfo, type, context = context)
                         if (opened) {
-                            routerDepend.closeView(getSDKContext(), type)
+                            routerDepend.closeView(getSDKContext(), type, animated = animated)
                         }
                         opened
                     }

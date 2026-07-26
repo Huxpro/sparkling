@@ -36,7 +36,7 @@ class RouterCloseMethod : AbsRouterCloseMethodIDL() {
         }
 
         val containerID = params.containerID
-        val animated = params.animated ?: true // Default to animated close
+        val animated = params.animated ?: false
 
         val success =
             try {
